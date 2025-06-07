@@ -1,5 +1,6 @@
 defmodule AgentleguideWeb.Router do
   use AgentleguideWeb, :router
+  import Phoenix.Controller
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -8,10 +9,28 @@ defmodule AgentleguideWeb.Router do
     plug :put_root_layout, html: {AgentleguideWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_user
   end
 
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  # Authentication pipelines
+  pipeline :require_auth do
+    plug :require_authenticated_user
+  end
+
+  pipeline :require_no_auth do
+    plug :redirect_if_user_is_authenticated
+  end
+
+  scope "/auth", AgentleguideWeb do
+    pipe_through :browser
+
+    get "/:provider", AuthController, :request
+    get "/:provider/callback", AuthController, :callback
+    delete "/logout", AuthController, :logout
   end
 
   scope "/", AgentleguideWeb do
@@ -39,6 +58,44 @@ defmodule AgentleguideWeb.Router do
 
       live_dashboard "/dashboard", metrics: AgentleguideWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
+  end
+
+  # Authentication helpers
+  def fetch_current_user(conn, _opts) do
+    user_id = get_session(conn, :user_id)
+
+    if user_id do
+      user = Agentleguide.Accounts.get_user!(user_id)
+      assign(conn, :current_user, user)
+    else
+      assign(conn, :current_user, nil)
+    end
+  rescue
+    Ecto.NoResultsError ->
+      conn
+      |> configure_session(drop: true)
+      |> assign(:current_user, nil)
+  end
+
+  defp require_authenticated_user(conn, _opts) do
+    if conn.assigns.current_user do
+      conn
+    else
+      conn
+      |> put_flash(:error, "You must log in to access this page.")
+      |> redirect(to: "/")
+      |> halt()
+    end
+  end
+
+  defp redirect_if_user_is_authenticated(conn, _opts) do
+    if conn.assigns.current_user do
+      conn
+      |> redirect(to: "/")
+      |> halt()
+    else
+      conn
     end
   end
 end

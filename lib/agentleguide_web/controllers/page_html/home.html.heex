@@ -5,64 +5,141 @@
     <div class="mb-8">
       <h2 class="text-lg font-medium text-gray-900 mb-4">Account Connections</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Gmail Connection -->
         <div class="bg-white p-4 rounded-lg border border-gray-200">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <div class={[
+                "w-10 h-10 rounded-lg flex items-center justify-center",
+                if(@current_user && @current_user.gmail_connected_at, do: "bg-green-100", else: "bg-red-100")
+              ]}>
+                <svg class={[
+                  "w-5 h-5",
+                  if(@current_user && @current_user.gmail_connected_at, do: "text-green-600", else: "text-red-600")
+                ]} fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
               </div>
               <div>
                 <p class="font-medium text-gray-900">Gmail</p>
-                <p class="text-sm text-gray-500">Not connected</p>
+                <p class="text-sm text-gray-500">
+                  <%= if @current_user && @current_user.gmail_connected_at do %>
+                    <span class="text-green-600">Connected</span>
+                  <% else %>
+                    Not connected
+                  <% end %>
+                </p>
               </div>
             </div>
-            <button class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
-              Connect
-            </button>
+            <%= if @current_user && @current_user.gmail_connected_at do %>
+              <span class="text-sm text-green-600 font-medium">✓ Active</span>
+            <% else %>
+              <a href="/auth/google" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
+                Connect
+              </a>
+            <% end %>
           </div>
         </div>
 
+        <!-- Google Calendar Connection -->
         <div class="bg-white p-4 rounded-lg border border-gray-200">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <div class={[
+                "w-10 h-10 rounded-lg flex items-center justify-center",
+                if(@current_user && @current_user.calendar_connected_at, do: "bg-green-100", else: "bg-blue-100")
+              ]}>
+                <svg class={[
+                  "w-5 h-5",
+                  if(@current_user && @current_user.calendar_connected_at, do: "text-green-600", else: "text-blue-600")
+                ]} fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5a2.25 2.25 0 002.25-2.25m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5a2.25 2.25 0 012.25 2.25v7.5" />
                 </svg>
               </div>
               <div>
                 <p class="font-medium text-gray-900">Google Calendar</p>
-                <p class="text-sm text-gray-500">Not connected</p>
+                <p class="text-sm text-gray-500">
+                  <%= if @current_user && @current_user.calendar_connected_at do %>
+                    <span class="text-green-600">Connected</span>
+                  <% else %>
+                    Not connected
+                  <% end %>
+                </p>
               </div>
             </div>
-            <button class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
-              Connect
-            </button>
+            <%= if @current_user && @current_user.calendar_connected_at do %>
+              <span class="text-sm text-green-600 font-medium">✓ Active</span>
+            <% else %>
+              <a href="/auth/google" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
+                Connect
+              </a>
+            <% end %>
           </div>
         </div>
 
+        <!-- HubSpot Connection -->
         <div class="bg-white p-4 rounded-lg border border-gray-200">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <div class={[
+                "w-10 h-10 rounded-lg flex items-center justify-center",
+                if(@current_user && @current_user.hubspot_connected_at, do: "bg-green-100", else: "bg-orange-100")
+              ]}>
+                <svg class={[
+                  "w-5 h-5",
+                  if(@current_user && @current_user.hubspot_connected_at, do: "text-green-600", else: "text-orange-600")
+                ]} fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                 </svg>
               </div>
               <div>
                 <p class="font-medium text-gray-900">HubSpot</p>
-                <p class="text-sm text-gray-500">Not connected</p>
+                <p class="text-sm text-gray-500">
+                  <%= if @current_user && @current_user.hubspot_connected_at do %>
+                    <span class="text-green-600">Connected</span>
+                  <% else %>
+                    Not connected
+                  <% end %>
+                </p>
               </div>
             </div>
-            <button class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
-              Connect
-            </button>
+            <%= if @current_user && @current_user.hubspot_connected_at do %>
+              <span class="text-sm text-green-600 font-medium">✓ Active</span>
+            <% else %>
+              <button class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
+                Connect
+              </button>
+            <% end %>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- User Info -->
+    <%= if @current_user do %>
+      <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <%= if @current_user.avatar_url do %>
+              <img src={@current_user.avatar_url} alt="Profile" class="w-10 h-10 rounded-full">
+            <% else %>
+              <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                <span class="text-gray-600 font-medium"><%= String.first(@current_user.name || @current_user.email) %></span>
+              </div>
+            <% end %>
+            <div>
+              <p class="font-medium text-gray-900"><%= @current_user.name || @current_user.email %></p>
+              <p class="text-sm text-gray-500"><%= @current_user.email %></p>
+            </div>
+          </div>
+          <form method="post" action="/auth/logout">
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()}>
+            <input type="hidden" name="_method" value="delete">
+            <button type="submit" class="text-sm text-gray-600 hover:text-gray-900">Sign out</button>
+          </form>
+        </div>
+      </div>
+    <% end %>
 
     <!-- Chat Interface -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -72,37 +149,57 @@
       </div>
       
       <div class="h-96 p-6 overflow-y-auto bg-gray-50">
-        <div class="text-center py-16">
-          <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-            </svg>
+        <%= if @current_user do %>
+          <div class="text-center py-16">
+            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+              </svg>
+            </div>
+            <p class="text-gray-500 text-sm">Welcome! Your AI assistant is ready to help.</p>
+            <div class="mt-4 text-xs text-gray-400 space-y-1">
+              <p>Try asking: "Who mentioned their kid plays baseball?"</p>
+              <p>Or: "Schedule an appointment with Sara Smith"</p>
+            </div>
           </div>
-          <p class="text-gray-500 text-sm">Connect your accounts to start chatting with your AI assistant</p>
-          <div class="mt-4 text-xs text-gray-400 space-y-1">
-            <p>Try asking: "Who mentioned their kid plays baseball?"</p>
-            <p>Or: "Schedule an appointment with Sara Smith"</p>
+        <% else %>
+          <div class="text-center py-16">
+            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+              </svg>
+            </div>
+            <p class="text-gray-500 text-sm">Connect your Google account to start chatting with your AI assistant</p>
+            <div class="mt-4">
+              <a href="/auth/google" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                <svg class="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Connect with Google
+              </a>
+            </div>
           </div>
-        </div>
+        <% end %>
       </div>
 
-      <div class="border-t border-gray-200 p-4">
-        <div class="flex gap-3">
-          <input
-            type="text"
-            placeholder="Type your message..."
-            disabled
-            class="flex-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          />
-          <button
-            disabled
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-400 cursor-not-allowed"
-          >
-            Send
-          </button>
+      <!-- Chat Input (only show if authenticated) -->
+      <%= if @current_user do %>
+        <div class="border-t border-gray-200 p-4">
+          <div class="flex gap-3">
+            <input 
+              type="text" 
+              placeholder="Ask me anything about your clients..."
+              class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+            <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+              Send
+            </button>
+          </div>
         </div>
-        <p class="text-xs text-gray-500 mt-2">Connect at least one account to enable the chat interface</p>
-      </div>
+      <% end %>
     </div>
   </div>
 </div>
