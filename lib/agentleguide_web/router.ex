@@ -31,12 +31,14 @@ defmodule AgentleguideWeb.Router do
     get "/:provider", AuthController, :request
     get "/:provider/callback", AuthController, :callback
     delete "/logout", AuthController, :logout
+    delete "/disconnect/:provider", AuthController, :disconnect
   end
 
   scope "/", AgentleguideWeb do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/profile-image/:user_id", PageController, :profile_image
   end
 
   # Other scopes may use custom stacks.

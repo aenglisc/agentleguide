@@ -120,6 +120,10 @@ defmodule Agentleguide.Accounts do
   """
   def update_user_google_tokens(%User{} = user, %Ueberauth.Auth{} = auth) do
     %{
+      info: %{
+        name: name,
+        image: avatar_url
+      },
       credentials: %{
         token: access_token,
         refresh_token: refresh_token,
@@ -135,6 +139,8 @@ defmodule Agentleguide.Accounts do
       end
 
     user_params = %{
+      name: name || user.name,
+      avatar_url: avatar_url || user.avatar_url,
       google_access_token: access_token,
       google_refresh_token: refresh_token || user.google_refresh_token,
       google_token_expires_at: expires_at,
@@ -168,6 +174,8 @@ defmodule Agentleguide.Accounts do
           %User{} = user ->
             # Link existing user with Google account
             user_params = %{
+              name: auth.info.name || user.name,
+              avatar_url: auth.info.image || user.avatar_url,
               google_uid: google_uid,
               google_access_token: auth.credentials.token,
               google_refresh_token: auth.credentials.refresh_token,
@@ -189,5 +197,70 @@ defmodule Agentleguide.Accounts do
             create_user_from_google(auth)
         end
     end
+  end
+
+  @doc """
+  Links a user with HubSpot OAuth data.
+
+  ## Examples
+
+      iex> link_user_with_hubspot(user, auth)
+      {:ok, %User{}}
+
+      iex> link_user_with_hubspot(user, bad_auth)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def link_user_with_hubspot(%User{} = user, %Ueberauth.Auth{} = auth) do
+    %{
+      credentials: %{
+        token: access_token,
+        refresh_token: refresh_token,
+        expires_at: expires_at
+      }
+    } = auth
+
+    expires_at =
+      if expires_at do
+        DateTime.from_unix!(expires_at)
+      else
+        nil
+      end
+
+    user_params = %{
+      hubspot_access_token: access_token,
+      hubspot_refresh_token: refresh_token,
+      hubspot_token_expires_at: expires_at,
+      hubspot_connected_at: DateTime.utc_now()
+    }
+
+    user
+    |> User.changeset(user_params)
+    |> Repo.update()
+  end
+
+  @doc """
+  Disconnects a user from HubSpot by clearing all HubSpot-related data.
+
+  ## Examples
+
+      iex> disconnect_user_from_hubspot(user)
+      {:ok, %User{}}
+
+      iex> disconnect_user_from_hubspot(user)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def disconnect_user_from_hubspot(%User{} = user) do
+    user_params = %{
+      hubspot_access_token: nil,
+      hubspot_refresh_token: nil,
+      hubspot_token_expires_at: nil,
+      hubspot_connected_at: nil
+    }
+
+    user
+    |> User.changeset(user_params)
+    |> Repo.update()
   end
 end

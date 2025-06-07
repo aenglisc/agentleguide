@@ -60,7 +60,8 @@ defmodule Agentleguide.MixProject do
       {:bandit, "~> 1.5"},
       # OAuth Authentication
       {:ueberauth, "~> 0.10"},
-      {:ueberauth_google, "~> 0.12"}
+      {:ueberauth_google, "~> 0.12"},
+      {:oauth2, "~> 2.0"}
     ]
   end
 

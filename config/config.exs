@@ -64,14 +64,28 @@ config :phoenix, :json_library, Jason
 # Configure Ueberauth
 config :ueberauth, Ueberauth,
   providers: [
-    google: {Ueberauth.Strategy.Google, [
-      default_scope: "email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar"
-    ]}
+    google:
+      {Ueberauth.Strategy.Google,
+       [
+         default_scope:
+           "email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar"
+       ]},
+    hubspot:
+      {Ueberauth.Strategy.Hubspot,
+       [
+         default_scope: "timeline oauth crm.objects.contacts.write crm.objects.companies.write crm.lists.write crm.objects.companies.read crm.lists.read crm.objects.deals.read crm.schemas.contacts.read crm.objects.deals.write crm.objects.contacts.read"
+       ]}
   ]
 
 config :ueberauth, Ueberauth.Strategy.Google.OAuth,
   client_id: System.get_env("GOOGLE_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+
+config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
+  client_id: System.get_env("HUBSPOT_CLIENT_ID"),
+  client_secret: System.get_env("HUBSPOT_CLIENT_SECRET")
+
+config :agentleguide, :hubspot_base_api_url, "https://api.hubapi.com"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

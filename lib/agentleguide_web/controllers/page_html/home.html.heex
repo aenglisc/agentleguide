@@ -1,6 +1,34 @@
 <div class="min-h-screen bg-gray-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
+    <!-- Safari Warning Modal -->
+    <div id="safari-warning-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" style="display: none;">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
+            <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Safari Browser Detected</h3>
+          <div class="mt-2 px-7 py-3">
+            <p class="text-sm text-gray-500">
+              HubSpot OAuth2 authentication may not work properly in Safari due to browser restrictions. 
+              For the best experience, please use Chrome, Firefox, or Edge.
+            </p>
+          </div>
+          <div class="items-center px-4 py-3">
+            <button id="continue-anyway" class="px-4 py-2 bg-orange-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 mb-2">
+              Continue Anyway
+            </button>
+            <button id="cancel-connection" class="px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <!-- Connection Status -->
     <div class="mb-8">
       <h2 class="text-lg font-medium text-gray-900 mb-4">Account Connections</h2>
@@ -35,7 +63,7 @@
               <span class="text-sm text-green-600 font-medium">✓ Active</span>
             <% else %>
               <a href="/auth/google" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
-                Connect
+              Connect
               </a>
             <% end %>
           </div>
@@ -71,7 +99,7 @@
               <span class="text-sm text-green-600 font-medium">✓ Active</span>
             <% else %>
               <a href="/auth/google" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
-                Connect
+              Connect
               </a>
             <% end %>
           </div>
@@ -104,11 +132,29 @@
               </div>
             </div>
             <%= if @current_user && @current_user.hubspot_connected_at do %>
-              <span class="text-sm text-green-600 font-medium">✓ Active</span>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-green-600 font-medium">✓ Active</span>
+                <form method="post" action="/auth/disconnect/hubspot" class="inline">
+                  <input type="hidden" name="_csrf_token" value={get_csrf_token()}>
+                  <input type="hidden" name="_method" value="delete">
+                  <button type="submit" 
+                          class="group flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 hover:bg-red-50 transition-colors duration-200"
+                          title="Disconnect HubSpot">
+                    <svg class="w-3 h-3 text-gray-400 group-hover:text-red-500 transition-colors duration-200" 
+                         fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </form>
+              </div>
             <% else %>
-              <button class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700">
-                Connect
-              </button>
+              <%= if @current_user do %>
+                <button id="hubspot-connect-btn" class="text-sm bg-orange-600 text-white px-3 py-1 rounded-md hover:bg-orange-700">
+                  Connect
+                </button>
+              <% else %>
+                <span class="text-sm text-gray-400">Login first</span>
+              <% end %>
             <% end %>
           </div>
         </div>
@@ -120,11 +166,17 @@
       <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <%= if @current_user.avatar_url do %>
-              <img src={@current_user.avatar_url} alt="Profile" class="w-10 h-10 rounded-full">
+            <%= if @current_user.avatar_url && @current_user.avatar_url != "" do %>
+              <img src={"/profile-image/#{@current_user.id}"} 
+                   alt="Profile" 
+                   class="w-10 h-10 rounded-full object-cover border border-gray-200"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full flex items-center justify-center text-white font-medium text-sm" style="display: none;">
+                <%= String.first(@current_user.name || @current_user.email) |> String.upcase() %>
+              </div>
             <% else %>
-              <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                <span class="text-gray-600 font-medium"><%= String.first(@current_user.name || @current_user.email) %></span>
+              <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                <%= String.first(@current_user.name || @current_user.email) |> String.upcase() %>
               </div>
             <% end %>
             <div>
@@ -150,18 +202,18 @@
       
       <div class="h-96 p-6 overflow-y-auto bg-gray-50">
         <%= if @current_user do %>
-          <div class="text-center py-16">
-            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-              </svg>
-            </div>
-            <p class="text-gray-500 text-sm">Welcome! Your AI assistant is ready to help.</p>
-            <div class="mt-4 text-xs text-gray-400 space-y-1">
-              <p>Try asking: "Who mentioned their kid plays baseball?"</p>
-              <p>Or: "Schedule an appointment with Sara Smith"</p>
-            </div>
+        <div class="text-center py-16">
+          <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+            </svg>
           </div>
+            <p class="text-gray-500 text-sm">Welcome! Your AI assistant is ready to help.</p>
+          <div class="mt-4 text-xs text-gray-400 space-y-1">
+            <p>Try asking: "Who mentioned their kid plays baseball?"</p>
+            <p>Or: "Schedule an appointment with Sara Smith"</p>
+          </div>
+        </div>
         <% else %>
           <div class="text-center py-16">
             <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -187,19 +239,78 @@
 
       <!-- Chat Input (only show if authenticated) -->
       <%= if @current_user do %>
-        <div class="border-t border-gray-200 p-4">
-          <div class="flex gap-3">
-            <input 
-              type="text" 
+      <div class="border-t border-gray-200 p-4">
+        <div class="flex gap-3">
+          <input
+            type="text"
               placeholder="Ask me anything about your clients..."
               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
             <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-              Send
-            </button>
-          </div>
+            Send
+          </button>
         </div>
+      </div>
       <% end %>
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Function to detect Safari browser
+  function isSafari() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    return userAgent.indexOf('safari') !== -1 && userAgent.indexOf('chrome') === -1;
+  }
+  
+  // Get modal elements
+  const modal = document.getElementById('safari-warning-modal');
+  const hubspotBtn = document.getElementById('hubspot-connect-btn');
+  const continueBtn = document.getElementById('continue-anyway');
+  const cancelBtn = document.getElementById('cancel-connection');
+  
+  // Only add event listener if hubspot button exists (user is logged in)
+  if (hubspotBtn) {
+    hubspotBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      if (isSafari()) {
+        // Show warning modal for Safari users
+        modal.style.display = 'block';
+      } else {
+        // Direct redirect for non-Safari browsers
+        window.location.href = '/auth/hubspot';
+      }
+    });
+  }
+  
+  // Modal event handlers
+  if (continueBtn) {
+    continueBtn.addEventListener('click', function() {
+      modal.style.display = 'none';
+      window.location.href = '/auth/hubspot';
+    });
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function() {
+      modal.style.display = 'none';
+    });
+  }
+  
+  // Close modal when clicking outside
+  window.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+  
+  // Close modal with escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.style.display === 'block') {
+      modal.style.display = 'none';
+    }
+  });
+});
+</script>

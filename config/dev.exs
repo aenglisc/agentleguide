@@ -83,3 +83,8 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# HubSpot OAuth Configuration for Development
+config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
+  client_id: System.get_env("HUBSPOT_CLIENT_ID") || "your_hubspot_client_id_here",
+  client_secret: System.get_env("HUBSPOT_CLIENT_SECRET") || "your_hubspot_client_secret_here"
