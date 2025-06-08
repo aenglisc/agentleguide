@@ -37,7 +37,7 @@ defmodule AgentleguideWeb.Router do
   scope "/", AgentleguideWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", HomeLive, :index
     get "/profile-image/:user_id", PageController, :profile_image
   end
 

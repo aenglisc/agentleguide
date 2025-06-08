@@ -73,7 +73,8 @@ config :ueberauth, Ueberauth,
     hubspot:
       {Ueberauth.Strategy.Hubspot,
        [
-         default_scope: "timeline oauth crm.objects.contacts.write crm.objects.companies.write crm.lists.write crm.objects.companies.read crm.lists.read crm.objects.deals.read crm.schemas.contacts.read crm.objects.deals.write crm.objects.contacts.read"
+         default_scope:
+           "timeline oauth crm.objects.contacts.write crm.objects.companies.write crm.lists.write crm.objects.companies.read crm.lists.read crm.objects.deals.read crm.schemas.contacts.read crm.objects.deals.write crm.objects.contacts.read"
        ]}
   ]
 
@@ -86,6 +87,22 @@ config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
   client_secret: System.get_env("HUBSPOT_CLIENT_SECRET")
 
 config :agentleguide, :hubspot_base_api_url, "https://api.hubapi.com"
+
+# Configure OpenAI
+config :openai,
+  api_key: System.get_env("OPENAI_API_KEY"),
+  # optional
+  organization_key: System.get_env("OPENAI_ORGANIZATION_KEY"),
+  http_options: [recv_timeout: 30_000]
+
+# Configure Oban
+config :agentleguide, Oban,
+  repo: Agentleguide.Repo,
+  queues: [
+    default: 10,
+    sync: 5,
+    ai: 3
+  ]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

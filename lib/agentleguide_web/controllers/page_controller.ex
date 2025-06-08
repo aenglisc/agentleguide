@@ -1,7 +1,7 @@
 defmodule AgentleguideWeb.PageController do
   use AgentleguideWeb, :controller
 
-    def home(conn, _params) do
+  def home(conn, _params) do
     current_user = conn.assigns[:current_user]
     render(conn, :home, current_user: current_user)
   end
@@ -32,7 +32,7 @@ defmodule AgentleguideWeb.PageController do
     end
   end
 
-    defp fetch_and_proxy_image(url) do
+  defp fetch_and_proxy_image(url) do
     headers = [
       {"user-agent", "AgentLeGuide/1.0"},
       {"referer", "https://accounts.google.com/"}

@@ -98,7 +98,36 @@
               </div>
             </div>
             <%= if @current_user && @current_user.gmail_connected_at do %>
-              <span class="text-sm text-green-600 font-medium">✓ Active</span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-green-600 font-medium">✓ Active</span>
+                <%= if @syncing do %>
+                  <div class="flex items-center gap-1">
+                    <svg
+                      class="animate-spin h-3 w-3 text-blue-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                      >
+                      </circle>
+                      <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      >
+                      </path>
+                    </svg>
+                    <span class="text-xs text-blue-600">Syncing...</span>
+                  </div>
+                <% end %>
+              </div>
             <% else %>
               <a
                 href="/auth/google"
@@ -211,7 +240,11 @@
               <div class="flex items-center gap-3">
                 <span class="text-sm text-green-600 font-medium">✓ Active</span>
                 <form method="post" action="/auth/disconnect/hubspot" class="inline">
-                  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                  <input
+                    type="hidden"
+                    name="_csrf_token"
+                    value={Plug.CSRFProtection.get_csrf_token()}
+                  />
                   <input type="hidden" name="_method" value="delete" />
                   <button
                     type="submit"
@@ -280,7 +313,7 @@
             </div>
           </div>
           <form method="post" action="/auth/logout">
-            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+            <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
             <input type="hidden" name="_method" value="delete" />
             <button type="submit" class="text-sm text-gray-600 hover:text-gray-900">
               Sign out
@@ -299,30 +332,92 @@
         </p>
       </div>
 
-      <div class="h-96 p-6 overflow-y-auto bg-gray-50">
+      <div
+        id="chat-messages"
+        class="h-96 p-6 overflow-y-auto bg-gray-50"
+        phx-hook="ScrollToBottom"
+      >
         <%= if @current_user do %>
-          <div class="text-center py-16">
-            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                class="w-6 h-6 text-indigo-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
-                />
-              </svg>
+          <%= if Enum.empty?(@messages) do %>
+            <div class="text-center py-16">
+              <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  class="w-6 h-6 text-indigo-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
+                  />
+                </svg>
+              </div>
+              <p class="text-gray-500 text-sm">Welcome! Your AI assistant is ready to help.</p>
+              <div class="mt-4 text-xs text-gray-400 space-y-1">
+                <p>Try asking: "Who mentioned their kid plays baseball?"</p>
+                <p>Or: "Schedule an appointment with Sara Smith"</p>
+              </div>
             </div>
-            <p class="text-gray-500 text-sm">Welcome! Your AI assistant is ready to help.</p>
-            <div class="mt-4 text-xs text-gray-400 space-y-1">
-              <p>Try asking: "Who mentioned their kid plays baseball?"</p>
-              <p>Or: "Schedule an appointment with Sara Smith"</p>
+          <% else %>
+            <!-- Chat Messages -->
+            <div class="space-y-4">
+              <%= for message <- @messages do %>
+                <div class={[
+                  "flex",
+                  if(message.role == "user", do: "justify-end", else: "justify-start")
+                ]}>
+                  <div class={[
+                    "max-w-sm lg:max-w-lg px-4 py-3 rounded-lg",
+                    if(message.role == "user",
+                      do: "bg-indigo-600 text-white",
+                      else: "bg-white border border-gray-200 text-gray-900"
+                    )
+                  ]}>
+                    <div class="text-sm">
+                      <%= if message.role == "user" do %>
+                        {message.content}
+                      <% else %>
+                        {raw(format_message_content(message.content))}
+                      <% end %>
+                    </div>
+                    <p class={[
+                      "text-xs mt-1",
+                      if(message.role == "user", do: "text-indigo-200", else: "text-gray-500")
+                    ]}>
+                      {format_timestamp(message.timestamp)}
+                    </p>
+                  </div>
+                </div>
+              <% end %>
+              
+<!-- Loading indicator -->
+              <%= if @loading do %>
+                <div class="flex justify-start">
+                  <div class="bg-white border border-gray-200 text-gray-900 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
+                    <div class="flex items-center space-x-2">
+                      <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div
+                          class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style="animation-delay: 0.1s;"
+                        >
+                        </div>
+                        <div
+                          class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style="animation-delay: 0.2s;"
+                        >
+                        </div>
+                      </div>
+                      <span class="text-sm text-gray-500">Thinking...</span>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
             </div>
-          </div>
+          <% end %>
         <% else %>
           <div class="text-center py-16">
             <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -376,16 +471,49 @@
 <!-- Chat Input (only show if authenticated) -->
       <%= if @current_user do %>
         <div class="border-t border-gray-200 p-4">
-          <div class="flex gap-3">
+          <form phx-submit="send_message" phx-change="update_message" class="flex gap-3">
             <input
               type="text"
+              name="message"
+              value={@input_message}
               placeholder="Ask me anything about your clients..."
               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              disabled={@loading}
             />
-            <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-              Send
+            <button
+              type="submit"
+              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={@loading or String.trim(@input_message) == ""}
+            >
+              <%= if @loading do %>
+                <svg
+                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  >
+                  </circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  >
+                  </path>
+                </svg>
+                Sending...
+              <% else %>
+                Send
+              <% end %>
             </button>
-          </div>
+          </form>
         </div>
       <% end %>
     </div>

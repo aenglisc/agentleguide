@@ -4,13 +4,18 @@ defmodule AgentleguideWeb.AuthController do
 
   alias Agentleguide.Accounts
 
+  # Helper to check if HubSpot job scheduling is enabled
+  defp should_schedule_hubspot_jobs? do
+    Application.get_env(:agentleguide, :hubspot_token_refresh_scheduling, true)
+  end
+
   def request(conn, _params) do
     # Ueberauth will handle the redirect to the OAuth provider
     # This action is typically not reached as Ueberauth redirects beforehand
     redirect(conn, to: ~p"/")
   end
 
-    def callback(%{assigns: %{ueberauth_failure: _fails}} = conn, %{"provider" => provider}) do
+  def callback(%{assigns: %{ueberauth_failure: _fails}} = conn, %{"provider" => provider}) do
     conn
     |> put_flash(
       :error,
@@ -37,12 +42,21 @@ defmodule AgentleguideWeb.AuthController do
     end
   end
 
-    def callback(%{assigns: %{ueberauth_auth: auth}} = conn, %{"provider" => "hubspot"}) do
+  def callback(%{assigns: %{ueberauth_auth: auth}} = conn, %{"provider" => "hubspot"}) do
     current_user = conn.assigns.current_user
 
     if current_user do
       case Accounts.link_user_with_hubspot(current_user, auth) do
         {:ok, _user} ->
+          # Schedule background jobs only if not in test mode
+          if should_schedule_hubspot_jobs?() do
+            # Schedule token refresh job to manage token renewal
+            Agentleguide.Jobs.HubspotTokenRefreshJob.schedule_next_refresh(current_user.id)
+
+            # Also schedule an initial HubSpot sync
+            Agentleguide.Jobs.HubspotSyncJob.schedule_now(current_user.id)
+          end
+
           conn
           |> put_flash(:info, "Successfully connected your HubSpot account!")
           |> redirect(to: ~p"/")
@@ -116,9 +130,10 @@ defmodule AgentleguideWeb.AuthController do
 
   def disconnect(conn, %{"provider" => provider}) do
     conn
-    |> put_flash(:error, "Disconnecting from #{String.capitalize(provider)} is not supported yet.")
+    |> put_flash(
+      :error,
+      "Disconnecting from #{String.capitalize(provider)} is not supported yet."
+    )
     |> redirect(to: ~p"/")
   end
-
-
 end

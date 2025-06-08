@@ -26,6 +26,10 @@ defmodule Agentleguide.Accounts.User do
     field :hubspot_refresh_token, :string
     field :hubspot_token_expires_at, :utc_datetime
 
+    # Sync tracking fields
+    field :gmail_last_synced_at, :utc_datetime
+    field :hubspot_last_synced_at, :utc_datetime
+
     timestamps(type: :utc_datetime)
   end
 
@@ -45,7 +49,9 @@ defmodule Agentleguide.Accounts.User do
       :hubspot_connected_at,
       :hubspot_access_token,
       :hubspot_refresh_token,
-      :hubspot_token_expires_at
+      :hubspot_token_expires_at,
+      :gmail_last_synced_at,
+      :hubspot_last_synced_at
     ])
     |> validate_required([:email])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")

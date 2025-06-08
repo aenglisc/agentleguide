@@ -21,7 +21,7 @@ defmodule AgentleguideWeb.PageControllerTest do
         credentials: %Ueberauth.Auth.Credentials{
           token: "access_token_123",
           refresh_token: "refresh_token_123",
-          expires_at: 1640995200
+          expires_at: 1_640_995_200
         }
       })
 

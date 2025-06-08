@@ -61,7 +61,14 @@ defmodule Agentleguide.MixProject do
       # OAuth Authentication
       {:ueberauth, "~> 0.10"},
       {:ueberauth_google, "~> 0.12"},
-      {:oauth2, "~> 2.0"}
+      {:oauth2, "~> 2.0"},
+      # RAG and AI capabilities
+      {:pgvector, "~> 0.2.0"},
+      {:openai, "~> 0.6.0"},
+      # Background jobs
+      {:oban, "~> 2.18"},
+      # Testing utilities
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 

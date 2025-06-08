@@ -9,6 +9,7 @@ defmodule Ueberauth.Strategy.Hubspot.OAuth do
 
   defp defaults() do
     base_url = base_api_url()
+
     [
       strategy: __MODULE__,
       site: "https://app.hubspot.com",
@@ -38,10 +39,11 @@ defmodule Ueberauth.Strategy.Hubspot.OAuth do
     |> OAuth2.Client.authorize_url!(params)
   end
 
-    def get_token!(params \\ [], opts \\ []) do
-    client = opts
-    |> client()
-    |> OAuth2.Client.get_token!(params)
+  def get_token!(params \\ [], opts \\ []) do
+    client =
+      opts
+      |> client()
+      |> OAuth2.Client.get_token!(params)
 
     client.token
   end
@@ -52,7 +54,7 @@ defmodule Ueberauth.Strategy.Hubspot.OAuth do
     OAuth2.Strategy.AuthCode.authorize_url(client, params)
   end
 
-    def get_token(client, params, headers) do
+  def get_token(client, params, headers) do
     client
     |> put_param("client_secret", client.client_secret)
     |> put_header("Accept", "application/json")

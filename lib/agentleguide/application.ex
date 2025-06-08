@@ -12,8 +12,12 @@ defmodule Agentleguide.Application do
       Agentleguide.Repo,
       {DNSCluster, query: Application.get_env(:agentleguide, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Agentleguide.PubSub},
+      # Start Phoenix Presence
+      Agentleguide.Presence,
       # Start the Finch HTTP client for sending emails
       {Finch, name: Agentleguide.Finch},
+      # Start Oban for background jobs
+      {Oban, Application.fetch_env!(:agentleguide, Oban)},
       # Start a worker by calling: Agentleguide.Worker.start_link(arg)
       # {Agentleguide.Worker, arg},
       # Start to serve requests, typically the last entry

@@ -13,7 +13,7 @@ defmodule Ueberauth.Strategy.Hubspot do
     redirect!(conn, url)
   end
 
-    def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
+  def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
     redirect_uri = callback_url(conn)
     module = option(conn, :oauth2_module) || Ueberauth.Strategy.Hubspot.OAuth
 

@@ -15,7 +15,7 @@ defmodule AgentleguideWeb.AuthControllerTest do
         credentials: %Ueberauth.Auth.Credentials{
           token: "access_token_123",
           refresh_token: "refresh_token_123",
-          expires_at: 1640995200
+          expires_at: 1_640_995_200
         }
       }
 
@@ -72,7 +72,7 @@ defmodule AgentleguideWeb.AuthControllerTest do
           credentials: %Ueberauth.Auth.Credentials{
             token: "old_access_token",
             refresh_token: "old_refresh_token",
-            expires_at: 1640995200
+            expires_at: 1_640_995_200
           }
         })
 
@@ -84,7 +84,7 @@ defmodule AgentleguideWeb.AuthControllerTest do
           credentials: %Ueberauth.Auth.Credentials{
             token: "new_access_token",
             refresh_token: "new_refresh_token",
-            expires_at: 1640995200
+            expires_at: 1_640_995_200
           }
         })
 
@@ -138,7 +138,7 @@ defmodule AgentleguideWeb.AuthControllerTest do
           credentials: %Ueberauth.Auth.Credentials{
             token: "access_token_123",
             refresh_token: "refresh_token_123",
-            expires_at: 1640995200
+            expires_at: 1_640_995_200
           }
         })
 
@@ -165,7 +165,7 @@ defmodule AgentleguideWeb.AuthControllerTest do
           credentials: %Ueberauth.Auth.Credentials{
             token: "access_token_123",
             refresh_token: "refresh_token_123",
-            expires_at: 1640995200
+            expires_at: 1_640_995_200
           }
         })
 

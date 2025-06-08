@@ -10,6 +10,22 @@ defmodule Agentleguide.Accounts do
   @doc """
   Gets a single user.
 
+  Returns nil if the User does not exist.
+
+  ## Examples
+
+      iex> get_user(123)
+      %User{}
+
+      iex> get_user(456)
+      nil
+
+  """
+  def get_user(id), do: Repo.get(User, id)
+
+  @doc """
+  Gets a single user.
+
   Raises `Ecto.NoResultsError` if the User does not exist.
 
   ## Examples
@@ -40,19 +56,39 @@ defmodule Agentleguide.Accounts do
   end
 
   @doc """
-  Gets a user by Google UID.
+  Gets a single user by Google UID.
+
+  Raises `Ecto.NoResultsError` if the User does not exist.
 
   ## Examples
 
-      iex> get_user_by_google_uid("123456789")
+      iex> get_user_by_google_uid("123456")
       %User{}
 
-      iex> get_user_by_google_uid("unknown")
+      iex> get_user_by_google_uid("invalid")
       nil
 
   """
-  def get_user_by_google_uid(google_uid) when is_binary(google_uid) do
+  def get_user_by_google_uid(google_uid) do
     Repo.get_by(User, google_uid: google_uid)
+  end
+
+  @doc """
+  Creates a user with the given attributes.
+
+  ## Examples
+
+      iex> create_user(%{email: "test@example.com", name: "Test User"})
+      {:ok, %User{}}
+
+      iex> create_user(%{email: "invalid"})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_user(attrs \\ %{}) do
+    %User{}
+    |> User.changeset(attrs)
+    |> Repo.insert()
   end
 
   @doc """
@@ -261,6 +297,24 @@ defmodule Agentleguide.Accounts do
 
     user
     |> User.changeset(user_params)
+    |> Repo.update()
+  end
+
+  @doc """
+  Updates a user.
+
+  ## Examples
+
+      iex> update_user(user, %{field: new_value})
+      {:ok, %User{}}
+
+      iex> update_user(user, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_user(%User{} = user, attrs) do
+    user
+    |> User.changeset(attrs)
     |> Repo.update()
   end
 end

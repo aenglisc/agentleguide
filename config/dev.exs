@@ -8,7 +8,8 @@ config :agentleguide, Agentleguide.Repo,
   database: "agentleguide_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  pool_size: 10,
+  types: Agentleguide.PostgrexTypes
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -88,3 +89,9 @@ config :swoosh, :api_client, false
 config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
   client_id: System.get_env("HUBSPOT_CLIENT_ID") || "your_hubspot_client_id_here",
   client_secret: System.get_env("HUBSPOT_CLIENT_SECRET") || "your_hubspot_client_secret_here"
+
+# AI Service Configuration for Development - Use Ollama
+config :agentleguide,
+  ai_backend: :ollama,
+  ollama_url: "http://localhost:11434",
+  embeddings_enabled: true
