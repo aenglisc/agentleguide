@@ -1,7 +1,8 @@
-defmodule Agentleguide.AiToolsTest do
+defmodule Agentleguide.Services.Ai.AiToolsTest do
   use Agentleguide.DataCase
 
-  alias Agentleguide.{AiTools, Accounts, Rag}
+  alias Agentleguide.{Accounts, Rag}
+  alias Agentleguide.Services.Ai.AiTools
 
   describe "get_available_tools/0" do
     test "returns a list of available tools" do

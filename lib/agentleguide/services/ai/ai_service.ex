@@ -1,4 +1,4 @@
-defmodule Agentleguide.AiService do
+defmodule Agentleguide.Services.Ai.AiService do
   @moduledoc """
   Service for interacting with AI APIs.
   Supports multiple backends: OpenAI, Ollama (local), and Mock (testing).
@@ -67,7 +67,7 @@ defmodule Agentleguide.AiService do
     all_messages = [system_message | messages]
 
     # Add tools if user is provided
-    tools = if user, do: Agentleguide.AiTools.get_available_tools(), else: nil
+    tools = if user, do: Agentleguide.Services.Ai.AiTools.get_available_tools(), else: nil
 
     request_params = %{
       model: @openai_chat_model,
@@ -100,7 +100,7 @@ defmodule Agentleguide.AiService do
 
         case Jason.decode(arguments_json) do
           {:ok, arguments} ->
-            case Agentleguide.AiTools.execute_tool_call(user, function_name, arguments) do
+            case Agentleguide.Services.Ai.AiTools.execute_tool_call(user, function_name, arguments) do
               {:ok, result} ->
                 "Tool #{function_name} executed successfully: #{Jason.encode!(result)}"
 
@@ -265,7 +265,7 @@ defmodule Agentleguide.AiService do
     case parse_tool_call_from_content(content) do
       {:tool_call, tool_name, parameters} ->
         # Execute the tool call
-        case Agentleguide.AiTools.execute_tool_call(user, tool_name, parameters) do
+                  case Agentleguide.Services.Ai.AiTools.execute_tool_call(user, tool_name, parameters) do
           {:ok, result} ->
             result_text = "I executed #{tool_name} successfully. " <> format_tool_result(result)
             {:ok, result_text}

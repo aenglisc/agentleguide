@@ -1,10 +1,11 @@
-defmodule Agentleguide.ChatService do
+defmodule Agentleguide.Services.Ai.ChatService do
   @moduledoc """
   Service for handling RAG-powered chat conversations.
   Orchestrates query processing, context retrieval, and AI response generation.
   """
 
-  alias Agentleguide.{AiService, Rag}
+  alias Agentleguide.Rag
+  alias Agentleguide.Services.Ai.AiService
   alias Agentleguide.Rag.{HubspotContact}
   require Logger
 

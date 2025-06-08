@@ -1,4 +1,4 @@
-defmodule Agentleguide.GmailService do
+defmodule Agentleguide.Services.Google.GmailService do
   @moduledoc """
   Service for interacting with Gmail API to fetch and sync user emails.
   """

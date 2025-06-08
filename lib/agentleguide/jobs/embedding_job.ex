@@ -6,7 +6,8 @@ defmodule Agentleguide.Jobs.EmbeddingJob do
   use Oban.Worker, queue: :ai, max_attempts: 3
 
   require Logger
-  alias Agentleguide.{Accounts, Rag, AiService}
+  alias Agentleguide.{Accounts, Rag}
+  alias Agentleguide.Services.Ai.AiService
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"user_id" => user_id, "email_id" => email_id}}) do

@@ -36,7 +36,7 @@ config :logger, :console,
   metadata: [:request_id],
   # Filter out expected HubSpot error logs in tests
   compile_time_purge_matching: [
-    [module: Agentleguide.HubspotService],
+    [module: Agentleguide.Services.Hubspot.HubspotService],
     [module: Agentleguide.Jobs.HubspotTokenRefreshJob],
     [module: Agentleguide.Jobs.HubspotSyncJob]
   ]

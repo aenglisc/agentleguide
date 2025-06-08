@@ -18,7 +18,7 @@ defmodule Agentleguide.Jobs.EmailSyncJob do
         :ok
 
       user ->
-        case Agentleguide.GmailService.sync_recent_emails(user) do
+        case Agentleguide.Services.Google.GmailService.sync_recent_emails(user) do
           {:ok, count} ->
             # Only log if emails were actually synced to reduce noise
             if count > 0 do
@@ -50,7 +50,7 @@ defmodule Agentleguide.Jobs.EmailSyncJob do
         :ok
 
       user ->
-        case Agentleguide.GmailService.sync_recent_emails(user) do
+        case Agentleguide.Services.Google.GmailService.sync_recent_emails(user) do
           {:ok, count} ->
             # Only log if emails were actually synced to reduce noise
             if count > 0 do

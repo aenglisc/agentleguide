@@ -1,4 +1,4 @@
-defmodule Agentleguide.AiTools do
+defmodule Agentleguide.Services.Ai.AiTools do
   @moduledoc """
   Tool calling system for the AI agent.
   Provides functions for email, calendar, and HubSpot operations.
@@ -288,7 +288,7 @@ defmodule Agentleguide.AiTools do
   end
 
   defp send_email(user, %{"to_email" => to_email, "subject" => subject, "body" => body}) do
-    case Agentleguide.GmailService.send_email(user, to_email, subject, body) do
+          case Agentleguide.Services.Google.GmailService.send_email(user, to_email, subject, body) do
       {:ok, _response} ->
         {:ok, %{"status" => "sent", "message" => "Email sent successfully to #{to_email}"}}
 
@@ -304,7 +304,7 @@ defmodule Agentleguide.AiTools do
 
     case {start_date, end_date} do
       {{:ok, start_dt}, {:ok, end_dt}} ->
-        case Agentleguide.CalendarService.get_available_slots(
+        case Agentleguide.Services.Google.CalendarService.get_available_slots(
                user,
                start_dt,
                end_dt,
@@ -351,7 +351,7 @@ defmodule Agentleguide.AiTools do
         attendees: attendee_emails
       }
 
-      case Agentleguide.CalendarService.create_event(user, event_attrs) do
+      case Agentleguide.Services.Google.CalendarService.create_event(user, event_attrs) do
         {:ok, event} ->
           {:ok,
            %{
@@ -378,7 +378,7 @@ defmodule Agentleguide.AiTools do
       phone: arguments["phone"]
     }
 
-    case Agentleguide.HubspotService.create_contact(user, contact_attrs) do
+          case Agentleguide.Services.Hubspot.HubspotService.create_contact(user, contact_attrs) do
       {:ok, contact} ->
         {:ok,
          %{
@@ -395,7 +395,7 @@ defmodule Agentleguide.AiTools do
   defp get_upcoming_events(user, arguments) do
     days = arguments["days"] || 7
 
-    case Agentleguide.CalendarService.get_upcoming_events(user, days) do
+          case Agentleguide.Services.Google.CalendarService.get_upcoming_events(user, days) do
       {:ok, events} ->
         formatted_events =
           Enum.map(events, fn event ->

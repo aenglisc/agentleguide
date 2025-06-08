@@ -1,11 +1,12 @@
-defmodule Agentleguide.AiAgent do
+defmodule Agentleguide.Services.Ai.AiAgent do
   @moduledoc """
   Main AI agent that handles ongoing instructions, task execution, and proactive actions.
   Coordinates with various services to provide intelligent automation.
   """
 
   require Logger
-  alias Agentleguide.{Tasks, AiService, AiTools}
+  alias Agentleguide.Tasks
+  alias Agentleguide.Services.Ai.{AiService, AiTools}
 
   @doc """
   Process user instruction and potentially create ongoing instructions or tasks.

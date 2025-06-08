@@ -1,4 +1,4 @@
-defmodule Agentleguide.HubspotServiceBehaviour do
+defmodule Agentleguide.Services.Hubspot.HubspotServiceBehaviour do
   @moduledoc """
   Behavior for HubSpot service operations.
   This allows mocking in tests while maintaining the same interface.

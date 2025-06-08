@@ -33,7 +33,7 @@ The HubSpot token refresh system has been implemented to automatically renew OAu
 ```elixir
 # In IEx console
 user = Agentleguide.Accounts.get_user!(user_id)
-{:ok, status} = Agentleguide.HubspotService.debug_token_status(user)
+{:ok, status} = Agentleguide.Services.Hubspot.HubspotService.debug_token_status(user)
 IO.inspect(status)
 ```
 
@@ -46,7 +46,7 @@ This will show:
 ### 2. Manual Token Refresh
 ```elixir
 # Force refresh immediately
-{:ok, updated_user} = Agentleguide.HubspotService.refresh_access_token(user)
+{:ok, updated_user} = Agentleguide.Services.Hubspot.HubspotService.refresh_access_token(user)
 ```
 
 ### 3. Schedule Token Refresh Job
@@ -136,11 +136,11 @@ If automatic refresh isn't working, you can manually refresh:
 user = Agentleguide.Accounts.get_user!(user_id)
 
 # Debug status
-{:ok, status} = Agentleguide.HubspotService.debug_token_status(user)
+{:ok, status} = Agentleguide.Services.Hubspot.HubspotService.debug_token_status(user)
 IO.inspect(status)
 
 # Force refresh
-case Agentleguide.HubspotService.refresh_access_token(user) do
+case Agentleguide.Services.Hubspot.HubspotService.refresh_access_token(user) do
   {:ok, updated_user} -> 
     IO.puts("✓ Token refreshed successfully")
   {:error, reason} -> 

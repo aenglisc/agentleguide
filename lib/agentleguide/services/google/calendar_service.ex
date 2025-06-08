@@ -1,4 +1,4 @@
-defmodule Agentleguide.CalendarService do
+defmodule Agentleguide.Services.Google.CalendarService do
   @moduledoc """
   Service for interacting with Google Calendar API to manage events and scheduling.
   """

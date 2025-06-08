@@ -59,9 +59,9 @@ defmodule AgentleguideWeb.HomeLive do
   @impl true
   def handle_info({:process_message, message}, socket) do
     # Generate a session ID if we don't have one
-    session_id = Agentleguide.ChatService.generate_session_id()
+    session_id = Agentleguide.Services.Ai.ChatService.generate_session_id()
 
-    case Agentleguide.ChatService.process_query(socket.assigns.current_user, session_id, message) do
+    case Agentleguide.Services.Ai.ChatService.process_query(socket.assigns.current_user, session_id, message) do
       {:ok, response} ->
         assistant_message = %{
           id: System.unique_integer([:positive]),

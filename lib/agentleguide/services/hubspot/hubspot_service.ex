@@ -1,9 +1,9 @@
-defmodule Agentleguide.HubspotService do
+defmodule Agentleguide.Services.Hubspot.HubspotService do
   @moduledoc """
   Service for interacting with HubSpot API to sync contacts and manage CRM data.
   """
 
-  @behaviour Agentleguide.HubspotServiceBehaviour
+  @behaviour Agentleguide.Services.Hubspot.HubspotServiceBehaviour
 
   require Logger
 
@@ -248,7 +248,7 @@ defmodule Agentleguide.HubspotService do
   def send_email(user, to_email, subject, body) do
     # For now, we'll use Gmail to send emails
     # In the future, we could integrate HubSpot's email sending capabilities
-    Agentleguide.GmailService.send_email(user, to_email, subject, body)
+    Agentleguide.Services.Google.GmailService.send_email(user, to_email, subject, body)
   end
 
   @doc """

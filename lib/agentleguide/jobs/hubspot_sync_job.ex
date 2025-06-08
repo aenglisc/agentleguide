@@ -15,7 +15,7 @@ defmodule Agentleguide.Jobs.HubspotSyncJob do
 
       user ->
         if user.hubspot_connected_at do
-          case Agentleguide.HubspotService.sync_contacts(user) do
+          case Agentleguide.Services.Hubspot.HubspotService.sync_contacts(user) do
             {:ok, count} ->
               # Only log if contacts were actually synced
               if count > 0 do

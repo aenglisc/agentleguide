@@ -4,7 +4,7 @@ defmodule Agentleguide.HubspotServiceTestStub do
   to prevent real API calls during tests.
   """
 
-  @behaviour Agentleguide.HubspotServiceBehaviour
+  @behaviour Agentleguide.Services.Hubspot.HubspotServiceBehaviour
 
   @impl true
   def refresh_access_token(_user) do
