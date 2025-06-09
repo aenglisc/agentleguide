@@ -227,7 +227,9 @@ defmodule Agentleguide.Services.Google.CalendarService do
       {:ok, d} ->
         naive = NaiveDateTime.new!(d, ~T[00:00:00])
         DateTime.from_naive!(naive, "Etc/UTC")
-      _ -> nil
+
+      _ ->
+        nil
     end
   end
 

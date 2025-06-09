@@ -17,7 +17,8 @@ describe "chat sessions" do
 
     {:ok, session} = Rag.create_chat_session(user, %{first_message: long_message})
 
-    assert String.length(session.title) == 53  # 50 chars + "..."
+    # 50 chars + "..."
+    assert String.length(session.title) == 53
     assert String.ends_with?(session.title, "...")
   end
 
@@ -43,7 +44,8 @@ describe "chat sessions" do
     sessions = Rag.list_chat_sessions(user)
 
     assert length(sessions) == 2
-    assert hd(sessions).id == session1.id  # Most recent first
+    # Most recent first
+    assert hd(sessions).id == session1.id
   end
 
   test "update_chat_session_activity/2 updates message count and timestamp" do

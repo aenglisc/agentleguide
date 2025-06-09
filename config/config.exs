@@ -78,22 +78,7 @@ config :ueberauth, Ueberauth,
        ]}
   ]
 
-config :ueberauth, Ueberauth.Strategy.Google.OAuth,
-  client_id: System.get_env("GOOGLE_CLIENT_ID"),
-  client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
-
-config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
-  client_id: System.get_env("HUBSPOT_CLIENT_ID"),
-  client_secret: System.get_env("HUBSPOT_CLIENT_SECRET")
-
 config :agentleguide, :hubspot_base_api_url, "https://api.hubapi.com"
-
-# Configure OpenAI
-config :openai,
-  api_key: System.get_env("OPENAI_API_KEY"),
-  # optional
-  organization_key: System.get_env("OPENAI_ORGANIZATION_KEY"),
-  http_options: [recv_timeout: 30_000]
 
 # Configure Oban
 config :agentleguide, Oban,

@@ -9,7 +9,11 @@ defmodule Agentleguide.Jobs.HubspotTokenRefreshJob do
 
   # Allow service to be configurable for testing
   defp hubspot_service do
-    Application.get_env(:agentleguide, :hubspot_service, Agentleguide.Services.Hubspot.HubspotService)
+    Application.get_env(
+      :agentleguide,
+      :hubspot_service,
+      Agentleguide.Services.Hubspot.HubspotService
+    )
   end
 
   # Allow scheduling to be disabled in tests

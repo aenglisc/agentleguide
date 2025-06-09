@@ -69,18 +69,19 @@ defmodule Agentleguide.Services.Ai.AiService do
     # Add tools if user is provided
     tools = if user, do: Agentleguide.Services.Ai.AiTools.get_available_tools(), else: nil
 
-    request_params = %{
+    # Build keyword arguments for OpenAI.chat_completion/1
+    params = [
       model: @openai_chat_model,
       messages: all_messages,
       temperature: 0.7,
       max_tokens: 1000
-    }
+    ]
 
-    request_params = if tools, do: Map.put(request_params, :tools, tools), else: request_params
+    params = if tools, do: Keyword.put(params, :tools, tools), else: params
 
-    case OpenAI.chat_completion(request_params) do
+    case OpenAI.chat_completion(params) do
       {:ok, %{choices: [%{"message" => message} | _]}} ->
-        handle_openai_response(message, user)
+        handle_openai_response(message, user, all_messages)
 
       {:error, error} ->
         Logger.error("Failed to generate OpenAI chat completion: #{inspect(error)}")
@@ -88,36 +89,116 @@ defmodule Agentleguide.Services.Ai.AiService do
     end
   end
 
-  defp handle_openai_response(%{"content" => content}, _user) when is_binary(content) do
+  defp handle_openai_response(%{"content" => content}, _user, _original_messages)
+       when is_binary(content) do
     {:ok, content}
   end
 
-  defp handle_openai_response(%{"tool_calls" => tool_calls}, user) when is_list(tool_calls) do
-    # Execute tool calls
-    tool_results =
+  defp handle_openai_response(%{"tool_calls" => tool_calls}, user, original_messages)
+       when is_list(tool_calls) do
+    # Execute tool calls and build messages for the conversation
+    {tool_messages, assistant_message} = execute_tool_calls_and_build_messages(tool_calls, user)
+
+    # Create the full conversation with original context + tool results
+    messages = original_messages ++ [assistant_message | tool_messages]
+
+    # Send back to AI to generate human-readable response
+    params = [
+      model: @openai_chat_model,
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 1000
+    ]
+
+    case OpenAI.chat_completion(params) do
+      {:ok, %{choices: [%{"message" => %{"content" => content}} | _]}} ->
+        {:ok, content}
+
+      {:error, error} ->
+        Logger.error("Failed to generate follow-up response after tool calls: #{inspect(error)}")
+        # Fallback to basic tool result summary
+        tool_summary = summarize_tool_results(tool_calls, user)
+        {:ok, tool_summary}
+    end
+  end
+
+  defp execute_tool_calls_and_build_messages(tool_calls, user) do
+    # Build the assistant message with tool calls
+    assistant_message = %{
+      "role" => "assistant",
+      "tool_calls" => tool_calls
+    }
+
+    # Execute each tool call and create tool messages
+    tool_messages =
+      Enum.map(tool_calls, fn tool_call ->
+        %{
+          "id" => tool_call_id,
+          "function" => %{"name" => function_name, "arguments" => arguments_json}
+        } = tool_call
+
+        case Jason.decode(arguments_json) do
+          {:ok, arguments} ->
+            case Agentleguide.Services.Ai.AiTools.execute_tool_call(
+                   user,
+                   function_name,
+                   arguments
+                 ) do
+              {:ok, result} ->
+                %{
+                  "role" => "tool",
+                  "tool_call_id" => tool_call_id,
+                  "content" => Jason.encode!(result)
+                }
+
+              {:error, error} ->
+                %{
+                  "role" => "tool",
+                  "tool_call_id" => tool_call_id,
+                  "content" => "Error: #{error}"
+                }
+            end
+
+          {:error, _} ->
+            %{
+              "role" => "tool",
+              "tool_call_id" => tool_call_id,
+              "content" => "Error: Failed to parse tool arguments"
+            }
+        end
+      end)
+
+    {tool_messages, assistant_message}
+  end
+
+  defp summarize_tool_results(tool_calls, user) do
+    results =
       Enum.map(tool_calls, fn tool_call ->
         %{"function" => %{"name" => function_name, "arguments" => arguments_json}} = tool_call
 
         case Jason.decode(arguments_json) do
           {:ok, arguments} ->
-            case Agentleguide.Services.Ai.AiTools.execute_tool_call(user, function_name, arguments) do
+            case Agentleguide.Services.Ai.AiTools.execute_tool_call(
+                   user,
+                   function_name,
+                   arguments
+                 ) do
               {:ok, result} ->
-                "Tool #{function_name} executed successfully: #{Jason.encode!(result)}"
+                "#{function_name}: #{Jason.encode!(result)}"
 
               {:error, error} ->
-                "Tool #{function_name} failed: #{error}"
+                "#{function_name} failed: #{error}"
             end
 
           {:error, _} ->
-            "Failed to parse arguments for tool #{function_name}"
+            "#{function_name}: Failed to parse arguments"
         end
       end)
 
-    result_text = Enum.join(tool_results, "\n\n")
-    {:ok, result_text}
+    "Tool results:\n" <> Enum.join(results, "\n")
   end
 
-  defp handle_openai_response(message, _user) do
+  defp handle_openai_response(message, _user, _original_messages) do
     Logger.warning("Unexpected OpenAI response format: #{inspect(message)}")
     {:ok, "I encountered an unexpected response format. Please try again."}
   end
@@ -169,7 +250,10 @@ defmodule Agentleguide.Services.Ai.AiService do
   end
 
   defp ollama_chat_completion(messages, context, user) do
-    Logger.info("🔧 Ollama chat completion called. User: #{if user, do: "#{user.id}", else: "nil"}")
+    Logger.info(
+      "🔧 Ollama chat completion called. User: #{if user, do: "#{user.id}", else: "nil"}"
+    )
+
     system_message = build_system_message(context)
 
     # If user is provided, add tool-calling capability to system message
@@ -305,7 +389,10 @@ defmodule Agentleguide.Services.Ai.AiService do
   # Process Ollama response to detect and execute tool calls
   defp process_ollama_response_for_tools(content, user)
        when is_binary(content) and not is_nil(user) do
-    Logger.info("🔍 Processing Ollama response for user #{user.id}. Content length: #{String.length(content)}")
+    Logger.info(
+      "🔍 Processing Ollama response for user #{user.id}. Content length: #{String.length(content)}"
+    )
+
     Logger.debug("📝 Ollama response content: #{content}")
 
     case parse_tool_call_from_content(content) do
@@ -334,7 +421,7 @@ defmodule Agentleguide.Services.Ai.AiService do
     end
   end
 
-    defp process_ollama_response_for_tools(content, _user) do
+  defp process_ollama_response_for_tools(content, _user) do
     {:ok, content}
   end
 

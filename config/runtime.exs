@@ -36,6 +36,19 @@ if config_env() == :prod do
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     socket_options: maybe_ipv6
 
+  config :openai,
+    api_key: System.get_env("OPENAI_API_KEY"),
+    organization_key: System.get_env("OPENAI_ORGANIZATION_KEY"),
+    http_options: [recv_timeout: 30_000]
+
+  config :ueberauth, Ueberauth.Strategy.Google.OAuth,
+    client_id: System.get_env("GOOGLE_CLIENT_ID"),
+    client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+
+  config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
+    client_id: System.get_env("HUBSPOT_CLIENT_ID"),
+    client_secret: System.get_env("HUBSPOT_CLIENT_SECRET")
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
@@ -48,10 +61,10 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  config :agentleguide, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
-
-  config :agentleguide, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :agentleguide, AgentleguideWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],

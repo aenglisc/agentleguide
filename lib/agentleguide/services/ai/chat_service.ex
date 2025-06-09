@@ -35,10 +35,10 @@ defmodule Agentleguide.Services.Ai.ChatService do
     session_id = generate_session_id()
 
     case Rag.create_chat_session(user, %{
-      session_id: session_id,
-      first_message: first_message,
-      last_message_at: DateTime.utc_now()
-    }) do
+           session_id: session_id,
+           first_message: first_message,
+           last_message_at: DateTime.utc_now()
+         }) do
       {:ok, session} -> {:ok, session}
       {:error, reason} -> {:error, reason}
     end
@@ -49,7 +49,9 @@ defmodule Agentleguide.Services.Ai.ChatService do
   """
   def get_session_with_messages(user, session_id) do
     case Rag.get_chat_session(user, session_id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       session ->
         messages = Rag.get_chat_messages(user, session_id)
         {:ok, %{session: session, messages: messages}}
@@ -211,6 +213,7 @@ defmodule Agentleguide.Services.Ai.ChatService do
           first_message: query,
           last_message_at: DateTime.utc_now()
         })
+
       session ->
         {:ok, session}
     end

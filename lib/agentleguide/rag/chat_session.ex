@@ -14,7 +14,10 @@ defmodule Agentleguide.Rag.ChatSession do
     field :metadata, :map, default: %{}
 
     belongs_to :user, Agentleguide.Accounts.User
-    has_many :messages, Agentleguide.Rag.ChatMessage, foreign_key: :session_id, references: :session_id
+
+    has_many :messages, Agentleguide.Rag.ChatMessage,
+      foreign_key: :session_id,
+      references: :session_id
 
     timestamps(type: :utc_datetime)
   end
@@ -22,7 +25,16 @@ defmodule Agentleguide.Rag.ChatSession do
   @doc false
   def changeset(chat_session, attrs) do
     chat_session
-    |> cast(attrs, [:user_id, :title, :description, :session_id, :is_active, :last_message_at, :message_count, :metadata])
+    |> cast(attrs, [
+      :user_id,
+      :title,
+      :description,
+      :session_id,
+      :is_active,
+      :last_message_at,
+      :message_count,
+      :metadata
+    ])
     |> validate_required([:user_id, :session_id])
     |> validate_length(:title, max: 200)
     |> validate_length(:description, max: 1000)

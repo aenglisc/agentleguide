@@ -288,7 +288,7 @@ defmodule Agentleguide.Services.Ai.AiTools do
   end
 
   defp send_email(user, %{"to_email" => to_email, "subject" => subject, "body" => body}) do
-          case Agentleguide.Services.Google.GmailService.send_email(user, to_email, subject, body) do
+    case Agentleguide.Services.Google.GmailService.send_email(user, to_email, subject, body) do
       {:ok, _response} ->
         {:ok, %{"status" => "sent", "message" => "Email sent successfully to #{to_email}"}}
 
@@ -378,7 +378,7 @@ defmodule Agentleguide.Services.Ai.AiTools do
       phone: arguments["phone"]
     }
 
-          case Agentleguide.Services.Hubspot.HubspotService.create_contact(user, contact_attrs) do
+    case Agentleguide.Services.Hubspot.HubspotService.create_contact(user, contact_attrs) do
       {:ok, contact} ->
         {:ok,
          %{
@@ -395,7 +395,7 @@ defmodule Agentleguide.Services.Ai.AiTools do
   defp get_upcoming_events(user, arguments) do
     days = arguments["days"] || 7
 
-          case Agentleguide.Services.Google.CalendarService.get_upcoming_events(user, days) do
+    case Agentleguide.Services.Google.CalendarService.get_upcoming_events(user, days) do
       {:ok, events} ->
         formatted_events =
           Enum.map(events, fn event ->
@@ -418,12 +418,14 @@ defmodule Agentleguide.Services.Ai.AiTools do
 
   # Helper functions
 
-    defp parse_date(date_string) when is_binary(date_string) do
+  defp parse_date(date_string) when is_binary(date_string) do
     case Date.from_iso8601(date_string) do
       {:ok, date} ->
         naive_datetime = NaiveDateTime.new!(date, ~T[09:00:00])
         {:ok, DateTime.from_naive!(naive_datetime, "Etc/UTC")}
-      {:error, reason} -> {:error, reason}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

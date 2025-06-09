@@ -59,6 +59,7 @@ defmodule Agentleguide.Services.Google.GoogleAuthService do
                   Logger.error(
                     "Failed to update user with new Google token: #{inspect(changeset)}"
                   )
+
                   {:error, :update_failed}
               end
 
@@ -96,6 +97,7 @@ defmodule Agentleguide.Services.Google.GoogleAuthService do
       Logger.warning(
         "Cannot refresh Google token for user #{user.id}: no refresh token available"
       )
+
       {:error, :no_refresh_token}
     end
   end
@@ -129,6 +131,7 @@ defmodule Agentleguide.Services.Google.GoogleAuthService do
           Logger.warning(
             "Failed to auto-refresh Google token for user #{user.id}: #{inspect(reason)}"
           )
+
           {:error, reason}
       end
     else

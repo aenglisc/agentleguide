@@ -30,6 +30,19 @@ config :agentleguide, AgentleguideWeb.Endpoint,
     tailwind: {Tailwind, :install_and_run, [:agentleguide, ~w(--watch)]}
   ]
 
+config :openai,
+  api_key: System.get_env("OPENAI_API_KEY"),
+  organization_key: System.get_env("OPENAI_ORGANIZATION_KEY"),
+  http_options: [recv_timeout: 30_000]
+
+config :ueberauth, Ueberauth.Strategy.Google.OAuth,
+  client_id: System.get_env("GOOGLE_CLIENT_ID"),
+  client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+
+config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
+  client_id: System.get_env("HUBSPOT_CLIENT_ID"),
+  client_secret: System.get_env("HUBSPOT_CLIENT_SECRET")
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
@@ -91,7 +104,11 @@ config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
   client_secret: System.get_env("HUBSPOT_CLIENT_SECRET") || "your_hubspot_client_secret_here"
 
 # AI Service Configuration for Development - Use Ollama
+# config :agentleguide,
+#   ai_backend: :ollama,
+#   ollama_url: "http://localhost:11434",
+#   embeddings_enabled: true
+
 config :agentleguide,
-  ai_backend: :ollama,
-  ollama_url: "http://localhost:11434",
+  ai_backend: :openai,
   embeddings_enabled: true

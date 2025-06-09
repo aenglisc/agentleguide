@@ -128,25 +128,28 @@ defmodule Agentleguide.RagTest do
       session_id = "test-session"
 
       # Create a chat session
-      {:ok, _session} = Rag.create_chat_session(user, %{
-        session_id: session_id,
-        first_message: "Hello"
-      })
+      {:ok, _session} =
+        Rag.create_chat_session(user, %{
+          session_id: session_id,
+          first_message: "Hello"
+        })
 
       # Create some messages
-      {:ok, _msg1} = Rag.create_chat_message(%{
-        user_id: user.id,
-        session_id: session_id,
-        role: "user",
-        content: "First message"
-      })
+      {:ok, _msg1} =
+        Rag.create_chat_message(%{
+          user_id: user.id,
+          session_id: session_id,
+          role: "user",
+          content: "First message"
+        })
 
-      {:ok, _msg2} = Rag.create_chat_message(%{
-        user_id: user.id,
-        session_id: session_id,
-        role: "assistant",
-        content: "Second message"
-      })
+      {:ok, _msg2} =
+        Rag.create_chat_message(%{
+          user_id: user.id,
+          session_id: session_id,
+          role: "assistant",
+          content: "Second message"
+        })
 
       # Verify session and messages exist
       assert Rag.get_chat_session(user, session_id) != nil

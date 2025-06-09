@@ -109,9 +109,13 @@ defmodule Agentleguide.Jobs.GoogleTokenRefreshJob do
       expiry_time ->
         # Schedule refresh 5 minutes before expiry
         seconds_until_expiry = DateTime.diff(expiry_time, DateTime.utc_now())
-        refresh_time = max(seconds_until_expiry - 300, 60) # At least 1 minute from now
+        # At least 1 minute from now
+        refresh_time = max(seconds_until_expiry - 300, 60)
 
-        Logger.debug("GoogleTokenRefreshJob: Token for user #{user.id} expires in #{seconds_until_expiry}s, scheduling refresh in #{refresh_time}s")
+        Logger.debug(
+          "GoogleTokenRefreshJob: Token for user #{user.id} expires in #{seconds_until_expiry}s, scheduling refresh in #{refresh_time}s"
+        )
+
         refresh_time
     end
   end

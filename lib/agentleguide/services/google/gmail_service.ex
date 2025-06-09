@@ -263,14 +263,21 @@ defmodule Agentleguide.Services.Google.GmailService do
 
     # Try different parsing approaches
     case parse_rfc2822_date(normalized_date) do
-      {:ok, datetime} -> datetime
+      {:ok, datetime} ->
+        datetime
+
       {:error, _reason} ->
         # Fallback: try a simpler parse for malformed dates
         case parse_simple_date(normalized_date) do
-          {:ok, datetime} -> datetime
+          {:ok, datetime} ->
+            datetime
+
           {:error, _reason} ->
             # Last resort: use current time but log the issue
-            Logger.warning("Failed to parse email date: #{inspect(date_string)}, using current time")
+            Logger.warning(
+              "Failed to parse email date: #{inspect(date_string)}, using current time"
+            )
+
             DateTime.utc_now()
         end
     end
@@ -300,9 +307,18 @@ defmodule Agentleguide.Services.Google.GmailService do
     # Handle formats like "13 Feb 2020 15:02:01 +0000"
     # Convert month names to numbers
     month_map = %{
-      "Jan" => "01", "Feb" => "02", "Mar" => "03", "Apr" => "04",
-      "May" => "05", "Jun" => "06", "Jul" => "07", "Aug" => "08",
-      "Sep" => "09", "Oct" => "10", "Nov" => "11", "Dec" => "12"
+      "Jan" => "01",
+      "Feb" => "02",
+      "Mar" => "03",
+      "Apr" => "04",
+      "May" => "05",
+      "Jun" => "06",
+      "Jul" => "07",
+      "Aug" => "08",
+      "Sep" => "09",
+      "Oct" => "10",
+      "Nov" => "11",
+      "Dec" => "12"
     }
 
     # Pattern: "13 Feb 2020 15:02:01 +0000"
@@ -337,7 +353,9 @@ defmodule Agentleguide.Services.Google.GmailService do
         case Date.new(String.to_integer(year), 1, 1) do
           {:ok, date} ->
             {:ok, DateTime.new!(date, ~T[00:00:00])}
-          _ -> {:error, :invalid_year}
+
+          _ ->
+            {:error, :invalid_year}
         end
 
       nil ->
