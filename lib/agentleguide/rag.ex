@@ -388,6 +388,25 @@ defmodule Agentleguide.Rag do
   end
 
   @doc """
+  Deletes a chat session and all its messages.
+  """
+  def delete_chat_session(user, session_id) do
+    case get_chat_session(user, session_id) do
+      nil -> {:error, :not_found}
+      session ->
+        Repo.transaction(fn ->
+          # Delete all messages for this session
+          ChatMessage
+          |> where([cm], cm.user_id == ^user.id and cm.session_id == ^session_id)
+          |> Repo.delete_all()
+
+          # Delete the session itself
+          Repo.delete!(session)
+        end)
+    end
+  end
+
+  @doc """
   Gets recent chat sessions for a user (deprecated - use list_chat_sessions/2).
   """
   def get_recent_chat_sessions(user, limit \\ 10) do

@@ -254,10 +254,95 @@ defmodule Agentleguide.Services.Google.GmailService do
     end
   end
 
+  defp parse_email_date(date_string) when is_binary(date_string) and date_string != "" do
+    # Try to parse RFC 2822 date format used by Gmail
+    # Examples: "Thu, 13 Feb 2020 15:02:01 +0000" or "Mon, 1 Jan 2024 10:30:00 -0500"
+
+    # Remove any extra whitespace and normalize
+    normalized_date = String.trim(date_string)
+
+    # Try different parsing approaches
+    case parse_rfc2822_date(normalized_date) do
+      {:ok, datetime} -> datetime
+      {:error, _reason} ->
+        # Fallback: try a simpler parse for malformed dates
+        case parse_simple_date(normalized_date) do
+          {:ok, datetime} -> datetime
+          {:error, _reason} ->
+            # Last resort: use current time but log the issue
+            Logger.warning("Failed to parse email date: #{inspect(date_string)}, using current time")
+            DateTime.utc_now()
+        end
+    end
+  end
+
   defp parse_email_date(_date_string) do
-    # Gmail date parsing is complex, for now just use current time
-    # In production, you'd want proper RFC 2822 date parsing
+    # Empty or invalid date string
     DateTime.utc_now()
+  end
+
+  # Parse RFC 2822 date format
+  defp parse_rfc2822_date(date_string) do
+    # Remove day name if present (e.g., "Thu, ")
+    date_without_day = Regex.replace(~r/^[A-Za-z]{3},\s*/, date_string, "")
+
+    # Try to parse with Elixir's built-in parsing
+    case DateTime.from_iso8601(convert_rfc2822_to_iso8601(date_without_day)) do
+      {:ok, datetime, _offset} -> {:ok, datetime}
+      {:error, reason} -> {:error, reason}
+    end
+  rescue
+    _ -> {:error, :parse_failed}
+  end
+
+  # Convert RFC 2822 format to ISO 8601 for Elixir parsing
+  defp convert_rfc2822_to_iso8601(date_string) do
+    # Handle formats like "13 Feb 2020 15:02:01 +0000"
+    # Convert month names to numbers
+    month_map = %{
+      "Jan" => "01", "Feb" => "02", "Mar" => "03", "Apr" => "04",
+      "May" => "05", "Jun" => "06", "Jul" => "07", "Aug" => "08",
+      "Sep" => "09", "Oct" => "10", "Nov" => "11", "Dec" => "12"
+    }
+
+    # Pattern: "13 Feb 2020 15:02:01 +0000"
+    pattern = ~r/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s*([\+\-]\d{4})/
+
+    case Regex.run(pattern, date_string) do
+      [_, day, month_name, year, hour, minute, second, timezone] ->
+        month = Map.get(month_map, month_name, "01")
+        # Pad day with leading zero if needed
+        day = String.pad_leading(day, 2, "0")
+        # Convert timezone format from +0000 to +00:00
+        tz = String.slice(timezone, 0, 3) <> ":" <> String.slice(timezone, 3, 2)
+
+        "#{year}-#{month}-#{day}T#{hour}:#{minute}:#{second}#{tz}"
+
+      nil ->
+        raise "Could not parse RFC 2822 date format"
+    end
+  end
+
+  # Simple fallback date parsing for malformed dates
+  defp parse_simple_date(date_string) do
+    # Try to extract basic date components and build a reasonable datetime
+    # This is a fallback for really malformed dates
+
+    # Look for year first (4 digits)
+    year_match = Regex.run(~r/(\d{4})/, date_string)
+
+    case year_match do
+      [_, year] ->
+        # Use a reasonable default date with the extracted year
+        case Date.new(String.to_integer(year), 1, 1) do
+          {:ok, date} ->
+            {:ok, DateTime.new!(date, ~T[00:00:00])}
+          _ -> {:error, :invalid_year}
+        end
+
+      nil ->
+        {:error, :no_year_found}
+    end
   end
 
   @doc """

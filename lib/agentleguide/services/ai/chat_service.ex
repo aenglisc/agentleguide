@@ -64,6 +64,13 @@ defmodule Agentleguide.Services.Ai.ChatService do
   end
 
   @doc """
+  Deletes a chat session and all its messages.
+  """
+  def delete_session(user, session_id) do
+    Rag.delete_chat_session(user, session_id)
+  end
+
+  @doc """
   Handle potential ambiguous person queries by checking for multiple matches.
   """
   def handle_person_query(user, query) do

@@ -123,6 +123,48 @@ defmodule Agentleguide.RagTest do
       assert message.session_id == "test-session"
     end
 
+    test "delete_chat_session/2 deletes session and all messages" do
+      user = user_fixture()
+      session_id = "test-session"
+
+      # Create a chat session
+      {:ok, _session} = Rag.create_chat_session(user, %{
+        session_id: session_id,
+        first_message: "Hello"
+      })
+
+      # Create some messages
+      {:ok, _msg1} = Rag.create_chat_message(%{
+        user_id: user.id,
+        session_id: session_id,
+        role: "user",
+        content: "First message"
+      })
+
+      {:ok, _msg2} = Rag.create_chat_message(%{
+        user_id: user.id,
+        session_id: session_id,
+        role: "assistant",
+        content: "Second message"
+      })
+
+      # Verify session and messages exist
+      assert Rag.get_chat_session(user, session_id) != nil
+      assert length(Rag.get_chat_messages(user, session_id)) == 2
+
+      # Delete the session
+      assert {:ok, _} = Rag.delete_chat_session(user, session_id)
+
+      # Verify session and messages are gone
+      assert Rag.get_chat_session(user, session_id) == nil
+      assert length(Rag.get_chat_messages(user, session_id)) == 0
+    end
+
+    test "delete_chat_session/2 returns error for non-existent session" do
+      user = user_fixture()
+      assert {:error, :not_found} = Rag.delete_chat_session(user, "non-existent")
+    end
+
     test "get_chat_messages/2 retrieves messages for a session" do
       user = user_fixture()
       session_id = "test-session"

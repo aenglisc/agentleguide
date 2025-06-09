@@ -46,6 +46,7 @@ defmodule AgentleguideWeb.HomeLive do
       |> assign(:loading, false)
       |> assign(:syncing, false)
       |> assign(:show_session_list, false)
+      |> assign(:session_to_delete, nil)
 
     {:ok, socket}
   end
@@ -112,6 +113,59 @@ defmodule AgentleguideWeb.HomeLive do
   @impl true
   def handle_event("close_session_list_on_escape", _params, socket) do
     # Ignore other keys
+    {:noreply, socket}
+  end
+
+    @impl true
+  def handle_event("delete_session", %{"session_id" => session_id}, socket) do
+    current_user = socket.assigns.current_user
+
+    if current_user do
+      # Set the session to be confirmed for deletion
+      socket = assign(socket, :session_to_delete, session_id)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("confirm_delete_session", %{"session_id" => session_id}, socket) do
+    current_user = socket.assigns.current_user
+
+    if current_user do
+      case Agentleguide.Services.Ai.ChatService.delete_session(current_user, session_id) do
+        {:ok, _} ->
+          # Refresh the chat sessions list
+          updated_sessions = Agentleguide.Services.Ai.ChatService.list_user_sessions(current_user)
+
+          socket =
+            socket
+            |> assign(:chat_sessions, updated_sessions)
+            |> assign(:session_to_delete, nil)
+
+          # If we deleted the current session, redirect to new session
+          socket =
+            if session_id == socket.assigns.current_session_id do
+              socket |> push_navigate(to: ~p"/")
+            else
+              socket
+            end
+
+          {:noreply, socket}
+
+        {:error, _reason} ->
+          socket = assign(socket, :session_to_delete, nil)
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_delete_session", _params, socket) do
+    socket = assign(socket, :session_to_delete, nil)
     {:noreply, socket}
   end
 

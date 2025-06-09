@@ -35,14 +35,14 @@ defmodule Agentleguide.Services.Ai.AiTools do
         "function" => %{
           "name" => "search_emails",
           "description" =>
-            "Search through Gmail emails by content, sender, subject, or keywords. Use this for finding specific emails or checking for new mail from someone.",
+            "Search through Gmail emails or get recent emails. For specific searches, use query parameter to search by content, sender, subject, or keywords. For recent/newest/latest emails, leave query parameter empty to get emails sorted by date.",
           "parameters" => %{
             "type" => "object",
             "properties" => %{
               "query" => %{
                 "type" => "string",
                 "description" =>
-                  "Search query for email content, sender name/email, subject, or keywords like 'golf', 'meeting', etc."
+                  "Search query for email content, sender name/email, subject, or keywords like 'golf', 'meeting', etc. Leave empty to get recent emails sorted by date."
               },
               "sender" => %{
                 "type" => "string",
