@@ -137,9 +137,18 @@ defmodule Agentleguide.Accounts do
       calendar_connected_at: DateTime.utc_now()
     }
 
-    %User{}
+    result = %User{}
     |> User.changeset(user_params)
     |> Repo.insert()
+
+    # Trigger historical email sync for new users
+    case result do
+      {:ok, user} ->
+        Agentleguide.Jobs.HistoricalEmailSyncJob.queue_historical_sync(user)
+        result
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -184,9 +193,18 @@ defmodule Agentleguide.Accounts do
       calendar_connected_at: DateTime.utc_now()
     }
 
-    user
+    result = user
     |> User.changeset(user_params)
     |> Repo.update()
+
+    # Trigger historical email sync when tokens are updated (reconnection)
+    case result do
+      {:ok, updated_user} ->
+        Agentleguide.Jobs.HistoricalEmailSyncJob.queue_historical_sync(updated_user)
+        result
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -225,9 +243,18 @@ defmodule Agentleguide.Accounts do
               calendar_connected_at: DateTime.utc_now()
             }
 
-            user
+            result = user
             |> User.changeset(user_params)
             |> Repo.update()
+
+            # Trigger historical email sync when linking existing user with Google
+            case result do
+              {:ok, updated_user} ->
+                Agentleguide.Jobs.HistoricalEmailSyncJob.queue_historical_sync(updated_user)
+                result
+              error ->
+                error
+            end
 
           nil ->
             create_user_from_google(auth)

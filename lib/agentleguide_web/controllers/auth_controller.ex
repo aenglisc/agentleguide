@@ -9,6 +9,11 @@ defmodule AgentleguideWeb.AuthController do
     Application.get_env(:agentleguide, :hubspot_token_refresh_scheduling, true)
   end
 
+  # Helper to check if Google job scheduling is enabled
+  defp should_schedule_google_jobs? do
+    Application.get_env(:agentleguide, :google_token_refresh_scheduling, true)
+  end
+
   def request(conn, _params) do
     # Ueberauth will handle the redirect to the OAuth provider
     # This action is typically not reached as Ueberauth redirects beforehand
@@ -27,6 +32,11 @@ defmodule AgentleguideWeb.AuthController do
   def callback(%{assigns: %{ueberauth_auth: auth}} = conn, %{"provider" => "google"}) do
     case Accounts.find_or_create_user_from_google(auth) do
       {:ok, user} ->
+        # Schedule Google token refresh management
+        if should_schedule_google_jobs?() do
+          Agentleguide.Jobs.GoogleTokenRefreshJob.schedule_next_refresh(user.id)
+        end
+
         conn
         |> put_session(:user_id, user.id)
         |> put_flash(:info, "Successfully connected with Google!")

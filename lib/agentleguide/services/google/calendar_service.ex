@@ -174,8 +174,10 @@ defmodule Agentleguide.Services.Google.CalendarService do
 
   defp generate_daily_slots(date, busy_periods, duration_minutes) do
     # Generate slots from 9 AM to 5 PM
-    start_time = DateTime.new!(date, ~T[09:00:00], "UTC")
-    end_time = DateTime.new!(date, ~T[17:00:00], "UTC")
+    start_naive = NaiveDateTime.new!(date, ~T[09:00:00])
+    end_naive = NaiveDateTime.new!(date, ~T[17:00:00])
+    start_time = DateTime.from_naive!(start_naive, "Etc/UTC")
+    end_time = DateTime.from_naive!(end_naive, "Etc/UTC")
 
     # Convert to seconds
     slot_duration = duration_minutes * 60
@@ -222,7 +224,9 @@ defmodule Agentleguide.Services.Google.CalendarService do
   defp parse_event_time(%{"date" => date}) do
     # All-day event
     case Date.from_iso8601(date) do
-      {:ok, d} -> DateTime.new!(d, ~T[00:00:00], "UTC")
+      {:ok, d} ->
+        naive = NaiveDateTime.new!(d, ~T[00:00:00])
+        DateTime.from_naive!(naive, "Etc/UTC")
       _ -> nil
     end
   end

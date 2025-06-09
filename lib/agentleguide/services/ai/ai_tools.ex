@@ -418,9 +418,11 @@ defmodule Agentleguide.Services.Ai.AiTools do
 
   # Helper functions
 
-  defp parse_date(date_string) when is_binary(date_string) do
+    defp parse_date(date_string) when is_binary(date_string) do
     case Date.from_iso8601(date_string) do
-      {:ok, date} -> {:ok, DateTime.new!(date, ~T[09:00:00], "UTC")}
+      {:ok, date} ->
+        naive_datetime = NaiveDateTime.new!(date, ~T[09:00:00])
+        {:ok, DateTime.from_naive!(naive_datetime, "Etc/UTC")}
       {:error, reason} -> {:error, reason}
     end
   end

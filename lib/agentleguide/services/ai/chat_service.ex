@@ -11,18 +11,56 @@ defmodule Agentleguide.Services.Ai.ChatService do
 
   @doc """
   Process a user query and generate an AI response with context.
+  Creates a new session if one doesn't exist.
   """
   def process_query(user, session_id, query) do
-    with {:ok, _} <- save_user_message(user, session_id, query),
+    with {:ok, _session} <- ensure_session_exists(user, session_id, query),
+         {:ok, _} <- save_user_message(user, session_id, query),
          {:ok, context} <- get_relevant_context(user, query),
          {:ok, response} <- generate_response(user, session_id, query, context),
-         {:ok, _} <- save_assistant_message(user, session_id, response) do
+         {:ok, _} <- save_assistant_message(user, session_id, response),
+         {:ok, _} <- update_session_activity(user, session_id) do
       {:ok, response}
     else
       {:error, reason} ->
         Logger.error("Failed to process query: #{inspect(reason)}")
         {:error, reason}
     end
+  end
+
+  @doc """
+  Creates a new chat session for a user.
+  """
+  def create_new_session(user, first_message \\ nil) do
+    session_id = generate_session_id()
+
+    case Rag.create_chat_session(user, %{
+      session_id: session_id,
+      first_message: first_message,
+      last_message_at: DateTime.utc_now()
+    }) do
+      {:ok, session} -> {:ok, session}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Gets a chat session with its messages.
+  """
+  def get_session_with_messages(user, session_id) do
+    case Rag.get_chat_session(user, session_id) do
+      nil -> {:error, :not_found}
+      session ->
+        messages = Rag.get_chat_messages(user, session_id)
+        {:ok, %{session: session, messages: messages}}
+    end
+  end
+
+  @doc """
+  Lists all active chat sessions for a user.
+  """
+  def list_user_sessions(user, limit \\ 20) do
+    Rag.list_chat_sessions(user, limit)
   end
 
   @doc """
@@ -155,6 +193,24 @@ defmodule Agentleguide.Services.Ai.ChatService do
         ]
     end)
     |> Enum.uniq()
+  end
+
+  defp ensure_session_exists(user, session_id, query) do
+    case Rag.get_chat_session(user, session_id) do
+      nil ->
+        # Create new session with the first message as title
+        Rag.create_chat_session(user, %{
+          session_id: session_id,
+          first_message: query,
+          last_message_at: DateTime.utc_now()
+        })
+      session ->
+        {:ok, session}
+    end
+  end
+
+  defp update_session_activity(user, session_id) do
+    Rag.update_chat_session_activity(user, session_id)
   end
 
   @doc """

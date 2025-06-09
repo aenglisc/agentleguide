@@ -55,7 +55,9 @@ config :agentleguide,
   embeddings_enabled: false,
   # Disable HubSpot job scheduling and API calls in tests
   hubspot_service: Agentleguide.HubspotServiceMock,
-  hubspot_token_refresh_scheduling: false
+  hubspot_token_refresh_scheduling: false,
+  # Disable Google token refresh scheduling in tests
+  google_token_refresh_scheduling: false
 
 # Disable Oban in test mode
 config :agentleguide, Oban, testing: :inline
