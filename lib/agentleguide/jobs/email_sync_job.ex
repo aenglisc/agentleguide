@@ -18,7 +18,7 @@ defmodule Agentleguide.Jobs.EmailSyncJob do
         :ok
 
       user ->
-        case Agentleguide.Services.Google.GmailService.sync_recent_emails(user) do
+        case gmail_service().sync_recent_emails(user) do
           {:ok, count} ->
             # Only log if emails were actually synced to reduce noise
             if count > 0 do
@@ -50,7 +50,7 @@ defmodule Agentleguide.Jobs.EmailSyncJob do
         :ok
 
       user ->
-        case Agentleguide.Services.Google.GmailService.sync_recent_emails(user) do
+        case gmail_service().sync_recent_emails(user) do
           {:ok, count} ->
             # Only log if emails were actually synced to reduce noise
             if count > 0 do
@@ -109,22 +109,37 @@ defmodule Agentleguide.Jobs.EmailSyncJob do
 
   # Private function to schedule next sync based on user presence
   defp schedule_next_adaptive_sync(user_id) do
-    is_online = Agentleguide.Presence.user_online?(user_id)
+    # Skip recursive scheduling in test environment to prevent infinite loops
+    # when using Oban's inline testing mode
+    if Application.get_env(:agentleguide, :environment) == :test do
+      Logger.debug("EmailSyncJob: Skipping recursive adaptive sync scheduling in test environment")
+      :ok
+    else
+      is_online = presence_module().user_online?(user_id)
 
-    {interval, frequency_desc} =
-      if is_online do
-        {@online_interval, "5 seconds (user online)"}
-      else
-        {@offline_interval, "30 minutes (user offline)"}
-      end
+      {interval, frequency_desc} =
+        if is_online do
+          {@online_interval, "5 seconds (user online)"}
+        else
+          {@offline_interval, "30 minutes (user offline)"}
+        end
 
-    Logger.debug("EmailSyncJob: Scheduling next sync in #{frequency_desc} for user #{user_id}")
+      Logger.debug("EmailSyncJob: Scheduling next sync in #{frequency_desc} for user #{user_id}")
 
-    %{"user_id" => user_id, "adaptive" => true}
-    |> __MODULE__.new(
-      schedule_in: interval,
-      unique: [period: 3, keys: [:user_id, :adaptive]]
-    )
-    |> Oban.insert()
+      %{"user_id" => user_id, "adaptive" => true}
+      |> __MODULE__.new(
+        schedule_in: interval,
+        unique: [period: 3, keys: [:user_id, :adaptive]]
+      )
+      |> Oban.insert()
+    end
+  end
+
+  defp gmail_service do
+    Application.get_env(:agentleguide, :gmail_service, Agentleguide.Services.Google.GmailService)
+  end
+
+  defp presence_module do
+    Application.get_env(:agentleguide, :presence_module, Agentleguide.Presence)
   end
 end

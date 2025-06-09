@@ -90,8 +90,10 @@ config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
   client_id: System.get_env("HUBSPOT_CLIENT_ID") || "your_hubspot_client_id_here",
   client_secret: System.get_env("HUBSPOT_CLIENT_SECRET") || "your_hubspot_client_secret_here"
 
-# AI Service Configuration for Development - Use Ollama
+# AI Service Configuration for Development
+# Switch to OpenAI if you have issues with Ollama timeouts
+# To use Ollama: set ai_backend to :ollama and ensure OPENAI_API_KEY is not set
 config :agentleguide,
-  ai_backend: :ollama,
+  ai_backend: if(System.get_env("OPENAI_API_KEY"), do: :openai, else: :ollama),
   ollama_url: "http://localhost:11434",
   embeddings_enabled: true

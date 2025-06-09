@@ -3,20 +3,23 @@ defmodule Agentleguide.Jobs.EmbeddingJob do
   Background job for generating embeddings for emails and other documents.
   """
 
-  use Oban.Worker, queue: :ai, max_attempts: 3
+  use Oban.Worker, queue: :ai, max_attempts: 1
 
   require Logger
   alias Agentleguide.{Accounts, Rag}
-  alias Agentleguide.Services.Ai.AiService
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"user_id" => user_id, "email_id" => email_id}}) do
-    with {:ok, user} <- Accounts.get_user(user_id),
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
          {:ok, email} <- get_email(email_id) do
       generate_email_embeddings(user, email)
     else
+      nil ->
+        Logger.warning("User #{user_id} not found for embedding generation")
+        {:discard, "User or email not found"}
+
       {:error, :not_found} ->
-        Logger.warning("User #{user_id} or email #{email_id} not found for embedding generation")
+        Logger.warning("Email #{email_id} not found for embedding generation")
         {:discard, "User or email not found"}
 
       {:error, reason} ->
@@ -27,15 +30,16 @@ defmodule Agentleguide.Jobs.EmbeddingJob do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"user_id" => user_id, "contact_id" => contact_id}}) do
-    with {:ok, user} <- Accounts.get_user(user_id),
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
          {:ok, contact} <- get_contact(contact_id) do
       generate_contact_embeddings(user, contact)
     else
-      {:error, :not_found} ->
-        Logger.warning(
-          "User #{user_id} or contact #{contact_id} not found for embedding generation"
-        )
+      nil ->
+        Logger.warning("User #{user_id} not found for embedding generation")
+        {:discard, "User or contact not found"}
 
+      {:error, :not_found} ->
+        Logger.warning("Contact #{contact_id} not found for embedding generation")
         {:discard, "User or contact not found"}
 
       {:error, reason} ->
@@ -79,7 +83,7 @@ defmodule Agentleguide.Jobs.EmbeddingJob do
       Logger.debug("Skipping embedding generation for email #{email.id}: content too short")
       :ok
     else
-      case AiService.generate_embeddings(content) do
+      case ai_service_module().generate_embeddings(content) do
         {:ok, embeddings} ->
           embedding_attrs = %{
             document_type: "gmail_email",
@@ -103,16 +107,27 @@ defmodule Agentleguide.Jobs.EmbeddingJob do
               :ok
 
             {:error, reason} ->
-              Logger.warning("Failed to save embedding for email #{email.id}: #{inspect(reason)}")
-              {:error, reason}
+              # Handle embeddings disabled silently (expected in tests)
+              if reason == "Embeddings disabled" do
+                Logger.debug("Skipping embedding generation for email #{email.id}: #{reason}")
+                :ok
+              else
+                Logger.warning("Failed to save embedding for email #{email.id}: #{inspect(reason)}")
+                {:error, reason}
+              end
           end
 
         {:error, reason} ->
-          Logger.warning(
-            "Failed to generate embeddings for email #{email.id}: #{inspect(reason)}"
-          )
-
-          {:error, reason}
+          # Handle embeddings disabled silently (expected in tests)
+          if reason == "Embeddings disabled" do
+            Logger.debug("Skipping embedding generation for email #{email.id}: #{reason}")
+            :ok
+          else
+            Logger.warning(
+              "Failed to generate embeddings for email #{email.id}: #{inspect(reason)}"
+            )
+            {:error, reason}
+          end
       end
     end
   end
@@ -125,7 +140,7 @@ defmodule Agentleguide.Jobs.EmbeddingJob do
       Logger.debug("Skipping embedding generation for contact #{contact.id}: content too short")
       :ok
     else
-      case AiService.generate_embeddings(content) do
+      case ai_service_module().generate_embeddings(content) do
         {:ok, embeddings} ->
           embedding_attrs = %{
             document_type: "hubspot_contact",
@@ -149,19 +164,27 @@ defmodule Agentleguide.Jobs.EmbeddingJob do
               :ok
 
             {:error, reason} ->
-              Logger.warning(
-                "Failed to save embedding for contact #{contact.id}: #{inspect(reason)}"
-              )
-
-              {:error, reason}
+              # Handle embeddings disabled silently (expected in tests)
+              if reason == "Embeddings disabled" do
+                Logger.debug("Skipping embedding generation for contact #{contact.id}: #{reason}")
+                :ok
+              else
+                Logger.warning("Failed to save embedding for contact #{contact.id}: #{inspect(reason)}")
+                {:error, reason}
+              end
           end
 
         {:error, reason} ->
-          Logger.warning(
-            "Failed to generate embeddings for contact #{contact.id}: #{inspect(reason)}"
-          )
-
-          {:error, reason}
+          # Handle embeddings disabled silently (expected in tests)
+          if reason == "Embeddings disabled" do
+            Logger.debug("Skipping embedding generation for contact #{contact.id}: #{reason}")
+            :ok
+          else
+            Logger.warning(
+              "Failed to generate embeddings for contact #{contact.id}: #{inspect(reason)}"
+            )
+            {:error, reason}
+          end
       end
     end
   end
@@ -181,5 +204,10 @@ defmodule Agentleguide.Jobs.EmbeddingJob do
       |> Enum.reject(&(String.trim(&1) == ""))
 
     Enum.join(parts, " ")
+  end
+
+  # Allow AI service to be configurable for testing
+  defp ai_service_module do
+    Application.get_env(:agentleguide, :ai_service_module, Agentleguide.Services.Ai.AiService)
   end
 end

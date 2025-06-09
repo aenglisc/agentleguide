@@ -25,13 +25,18 @@ defmodule AgentleguideWeb.HomeLive do
           {:ok, session_data} ->
             sessions = Agentleguide.Services.Ai.ChatService.list_user_sessions(current_user)
             {format_messages_for_display(session_data.messages), session_data.session, sessions}
+
           {:error, _} ->
             # Session not found, redirect to new session
             sessions = Agentleguide.Services.Ai.ChatService.list_user_sessions(current_user)
             {[], nil, sessions}
         end
       else
-        sessions = if current_user, do: Agentleguide.Services.Ai.ChatService.list_user_sessions(current_user), else: []
+        sessions =
+          if current_user,
+            do: Agentleguide.Services.Ai.ChatService.list_user_sessions(current_user),
+            else: []
+
         {[], nil, sessions}
       end
 
@@ -125,8 +130,9 @@ defmodule AgentleguideWeb.HomeLive do
     current_user = socket.assigns.current_user
 
     # Use existing session ID or create a new one
-    session_id = socket.assigns.current_session_id ||
-                 Agentleguide.Services.Ai.ChatService.generate_session_id()
+    session_id =
+      socket.assigns.current_session_id ||
+        Agentleguide.Services.Ai.ChatService.generate_session_id()
 
     case Agentleguide.Services.Ai.ChatService.process_query(current_user, session_id, message) do
       {:ok, response} ->
@@ -233,10 +239,13 @@ defmodule AgentleguideWeb.HomeLive do
       String.match?(line, ~r/^```/) ->
         # For now, just treat as code line - full code block parsing would need more state
         code_content = String.replace(line, ~r/^```\w*/, "")
+
         if String.trim(code_content) == "" do
           "<div class='h-1'></div>"
         else
-          escaped_content = Phoenix.HTML.html_escape(code_content) |> Phoenix.HTML.safe_to_string()
+          escaped_content =
+            Phoenix.HTML.html_escape(code_content) |> Phoenix.HTML.safe_to_string()
+
           "<div class='bg-gray-100 px-3 py-2 rounded-md font-mono text-sm mb-2'>#{escaped_content}</div>"
         end
 
@@ -244,12 +253,14 @@ defmodule AgentleguideWeb.HomeLive do
       String.match?(line, ~r/^[\s]*[-\*\+]\s+/) ->
         bullet_content = String.replace(line, ~r/^[\s]*[-\*\+]\s+/, "")
         formatted_content = format_inline_markdown(bullet_content)
+
         "<div class='flex items-start mb-1'><span class='text-gray-400 mr-2 mt-0.5'>•</span><span>#{formatted_content}</span></div>"
 
       # Handle numbered lists
       String.match?(line, ~r/^[\s]*\d+\.\s+/) ->
         {number, content} = extract_number_and_content(line)
         formatted_content = format_inline_markdown(content)
+
         "<div class='flex items-start mb-1'><span class='text-gray-400 mr-2 mt-0.5'>#{number}.</span><span>#{formatted_content}</span></div>"
 
       # Handle empty lines
@@ -286,7 +297,11 @@ defmodule AgentleguideWeb.HomeLive do
 
   # Format `code` spans
   defp format_code_spans(text) do
-    Regex.replace(~r/`([^`]+?)`/, text, "<code class='bg-gray-100 px-1 py-0.5 rounded text-sm font-mono'>\\1</code>")
+    Regex.replace(
+      ~r/`([^`]+?)`/,
+      text,
+      "<code class='bg-gray-100 px-1 py-0.5 rounded text-sm font-mono'>\\1</code>"
+    )
   end
 
   # Format basic links (simple URL detection)

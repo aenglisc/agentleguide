@@ -288,9 +288,14 @@ defmodule Agentleguide.Services.Ai.AiTools do
   end
 
   defp send_email(user, %{"to_email" => to_email, "subject" => subject, "body" => body}) do
-          case Agentleguide.Services.Google.GmailService.send_email(user, to_email, subject, body) do
+    gmail_service = Application.get_env(:agentleguide, :gmail_service, Agentleguide.Services.Google.GmailService)
+
+    case gmail_service.send_email(user, to_email, subject, body) do
       {:ok, _response} ->
         {:ok, %{"status" => "sent", "message" => "Email sent successfully to #{to_email}"}}
+
+      {:error, :not_implemented_in_tests} ->
+        {:error, "Gmail service not available in test environment"}
 
       {:error, reason} ->
         {:error, "Failed to send email: #{inspect(reason)}"}
@@ -298,13 +303,15 @@ defmodule Agentleguide.Services.Ai.AiTools do
   end
 
   defp get_available_time_slots(user, arguments) do
+    calendar_service = Application.get_env(:agentleguide, :calendar_service, Agentleguide.Services.Google.CalendarService)
+
     start_date = parse_date(arguments["start_date"])
     end_date = parse_date(arguments["end_date"])
     duration_minutes = arguments["duration_minutes"] || 60
 
     case {start_date, end_date} do
       {{:ok, start_dt}, {:ok, end_dt}} ->
-        case Agentleguide.Services.Google.CalendarService.get_available_slots(
+        case calendar_service.get_available_slots(
                user,
                start_dt,
                end_dt,
@@ -322,6 +329,9 @@ defmodule Agentleguide.Services.Ai.AiTools do
 
             {:ok, %{"available_slots" => formatted_slots, "count" => length(formatted_slots)}}
 
+          {:error, :not_implemented_in_tests} ->
+            {:error, "Calendar service not available in test environment"}
+
           {:error, reason} ->
             {:error, "Failed to get available slots: #{inspect(reason)}"}
         end
@@ -332,6 +342,8 @@ defmodule Agentleguide.Services.Ai.AiTools do
   end
 
   defp schedule_meeting(user, arguments) do
+    calendar_service = Application.get_env(:agentleguide, :calendar_service, Agentleguide.Services.Google.CalendarService)
+
     %{
       "title" => title,
       "start_time" => start_time_str,
@@ -351,7 +363,7 @@ defmodule Agentleguide.Services.Ai.AiTools do
         attendees: attendee_emails
       }
 
-      case Agentleguide.Services.Google.CalendarService.create_event(user, event_attrs) do
+      case calendar_service.create_event(user, event_attrs) do
         {:ok, event} ->
           {:ok,
            %{
@@ -359,6 +371,9 @@ defmodule Agentleguide.Services.Ai.AiTools do
              "event_id" => event["id"],
              "message" => "Meeting '#{title}' scheduled successfully"
            }}
+
+        {:error, :not_implemented_in_tests} ->
+          {:error, "Calendar service not available in test environment"}
 
         {:error, reason} ->
           {:error, "Failed to schedule meeting: #{inspect(reason)}"}
@@ -378,7 +393,9 @@ defmodule Agentleguide.Services.Ai.AiTools do
       phone: arguments["phone"]
     }
 
-          case Agentleguide.Services.Hubspot.HubspotService.create_contact(user, contact_attrs) do
+    hubspot_service = Application.get_env(:agentleguide, :hubspot_service, Agentleguide.Services.Hubspot.HubspotService)
+
+    case hubspot_service.create_contact(user, contact_attrs) do
       {:ok, contact} ->
         {:ok,
          %{
@@ -387,15 +404,19 @@ defmodule Agentleguide.Services.Ai.AiTools do
            "message" => "Contact created successfully in HubSpot"
          }}
 
+      {:error, :not_implemented_in_tests} ->
+        {:error, "HubSpot service not available in test environment"}
+
       {:error, reason} ->
         {:error, "Failed to create contact: #{inspect(reason)}"}
     end
   end
 
   defp get_upcoming_events(user, arguments) do
+    calendar_service = Application.get_env(:agentleguide, :calendar_service, Agentleguide.Services.Google.CalendarService)
     days = arguments["days"] || 7
 
-          case Agentleguide.Services.Google.CalendarService.get_upcoming_events(user, days) do
+    case calendar_service.get_upcoming_events(user, days) do
       {:ok, events} ->
         formatted_events =
           Enum.map(events, fn event ->
@@ -410,6 +431,9 @@ defmodule Agentleguide.Services.Ai.AiTools do
           end)
 
         {:ok, %{"events" => formatted_events, "count" => length(formatted_events)}}
+
+      {:error, :not_implemented_in_tests} ->
+        {:error, "Calendar service not available in test environment"}
 
       {:error, reason} ->
         {:error, "Failed to get upcoming events: #{inspect(reason)}"}

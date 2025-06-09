@@ -15,7 +15,7 @@ defmodule Agentleguide.Jobs.HubspotSyncJob do
 
       user ->
         if user.hubspot_connected_at do
-          case Agentleguide.Services.Hubspot.HubspotService.sync_contacts(user) do
+          case hubspot_service().sync_contacts(user) do
             {:ok, count} ->
               # Only log if contacts were actually synced
               if count > 0 do
@@ -59,5 +59,9 @@ defmodule Agentleguide.Jobs.HubspotSyncJob do
     %{"user_id" => user_id}
     |> __MODULE__.new(schedule_in: {2, :hour})
     |> Oban.insert()
+  end
+
+  defp hubspot_service do
+    Application.get_env(:agentleguide, :hubspot_service, Agentleguide.Services.Hubspot.HubspotService)
   end
 end

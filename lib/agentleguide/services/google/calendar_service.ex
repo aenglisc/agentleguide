@@ -7,6 +7,10 @@ defmodule Agentleguide.Services.Google.CalendarService do
 
   @calendar_api_base "https://www.googleapis.com/calendar/v3"
 
+  defp http_client do
+    Application.get_env(:agentleguide, :google_calendar_http_client, Finch)
+  end
+
   @doc """
   Get available time slots for a user within a date range.
   """
@@ -138,6 +142,13 @@ defmodule Agentleguide.Services.Google.CalendarService do
     fetch_events(user, start_date, end_date)
   end
 
+  @doc """
+  List events for a user (alias for get_upcoming_events).
+  """
+  def list_events(user, days \\ 7) do
+    get_upcoming_events(user, days)
+  end
+
   defp calculate_available_slots(events, start_date, end_date, duration_minutes) do
     # Convert events to busy periods
     busy_periods =
@@ -227,7 +238,9 @@ defmodule Agentleguide.Services.Google.CalendarService do
       {:ok, d} ->
         naive = NaiveDateTime.new!(d, ~T[00:00:00])
         DateTime.from_naive!(naive, "Etc/UTC")
-      _ -> nil
+
+      _ ->
+        nil
     end
   end
 
@@ -258,7 +271,7 @@ defmodule Agentleguide.Services.Google.CalendarService do
         :delete -> Finch.build(:delete, url, headers)
       end
 
-    case Finch.request(request, Agentleguide.Finch) do
+    case http_client().request(request, Agentleguide.Finch) do
       {:ok, %{status: status, body: response_body}} when status in 200..299 ->
         if response_body == "" do
           {:ok, %{}}

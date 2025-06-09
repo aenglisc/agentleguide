@@ -3,7 +3,10 @@ defmodule Agentleguide.Services.Google.GmailService do
   Service for interacting with Gmail API to fetch and sync user emails.
   """
 
+
+
   require Logger
+  alias Agentleguide.Rag
 
   @gmail_api_base "https://gmail.googleapis.com/gmail/v1"
 
@@ -30,7 +33,7 @@ defmodule Agentleguide.Services.Google.GmailService do
 
   # Get the last sync time for a user (either last email date or gmail_connected_at).
   defp get_last_sync_time(user) do
-    latest_email = Agentleguide.Rag.get_latest_gmail_email(user)
+    latest_email = Rag.get_latest_gmail_email(user)
 
     case latest_email do
       nil ->
@@ -68,7 +71,7 @@ defmodule Agentleguide.Services.Google.GmailService do
 
   # Filter out message IDs that already exist in our database.
   defp filter_existing_message_ids(user, message_ids) do
-    existing_ids = Agentleguide.Rag.get_existing_gmail_ids(user, message_ids)
+    existing_ids = Rag.get_existing_gmail_ids(user, message_ids)
     message_ids -- existing_ids
   end
 
@@ -101,14 +104,42 @@ defmodule Agentleguide.Services.Google.GmailService do
   end
 
   @doc """
-  Fetch and store individual messages.
+  Fetch message IDs from Gmail for a date range.
+  Returns raw message IDs without any database operations.
   """
-  def fetch_and_store_messages(user, message_ids) do
+  def fetch_message_ids(user, query_params \\ %{}) do
+    base_url = "#{@gmail_api_base}/users/me/messages"
+
+    # Default parameters
+    params = Map.merge(%{"maxResults" => "100"}, query_params)
+
+    query_string = URI.encode_query(params)
+    url = "#{base_url}?#{query_string}"
+
+    case make_gmail_request(user, url) do
+      {:ok, %{"messages" => messages} = response} ->
+        message_ids = Enum.map(messages, & &1["id"])
+        next_page_token = response["nextPageToken"]
+        {:ok, %{message_ids: message_ids, next_page_token: next_page_token}}
+
+      {:ok, %{}} ->
+        {:ok, %{message_ids: [], next_page_token: nil}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Fetch individual messages by their IDs.
+  Returns raw message data without storing anything.
+  """
+  def fetch_messages(user, message_ids) do
     results =
       Enum.map(message_ids, fn message_id ->
-        case fetch_and_store_message(user, message_id) do
-          {:ok, email} ->
-            {:ok, email}
+        case fetch_message(user, message_id) do
+          {:ok, message_data} ->
+            {:ok, message_data}
 
           {:error, reason} ->
             Logger.warning("Failed to fetch message #{message_id}: #{inspect(reason)}")
@@ -117,36 +148,32 @@ defmodule Agentleguide.Services.Google.GmailService do
       end)
 
     successes = Enum.filter(results, &match?({:ok, _}, &1))
-    {:ok, successes}
+    errors = Enum.filter(results, &match?({:error, _}, &1))
+
+    {:ok, %{successes: successes, errors: errors}}
   end
 
   @doc """
-  Fetch a single message and store it.
+  Fetch a single message by ID.
+  Returns raw message data without storing anything.
   """
-  def fetch_and_store_message(user, message_id) do
+  def fetch_message(user, message_id) do
     url = "#{@gmail_api_base}/users/me/messages/#{message_id}?format=full"
 
     case make_gmail_request(user, url) do
       {:ok, message_data} ->
-        case parse_and_store_message(user, message_data) do
-          {:ok, email} ->
-            # Queue embedding generation as a background job
-            %{user_id: user.id, email_id: email.id}
-            |> Agentleguide.Jobs.EmbeddingJob.new()
-            |> Oban.insert()
-
-            {:ok, email}
-
-          {:error, reason} ->
-            {:error, reason}
-        end
+        {:ok, message_data}
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp parse_and_store_message(user, message_data) do
+  @doc """
+  Parse raw Gmail message data into a structured format.
+  Pure function that doesn't touch the database.
+  """
+  def parse_message(message_data) do
     gmail_id = message_data["id"]
     thread_id = message_data["threadId"]
 
@@ -175,7 +202,7 @@ defmodule Agentleguide.Services.Google.GmailService do
     # Parse labels
     label_ids = message_data["labelIds"] || []
 
-    email_attrs = %{
+    %{
       gmail_id: gmail_id,
       thread_id: thread_id,
       subject: subject,
@@ -187,8 +214,67 @@ defmodule Agentleguide.Services.Google.GmailService do
       date: parse_email_date(date),
       last_synced_at: DateTime.utc_now()
     }
+  end
 
-    Agentleguide.Rag.upsert_gmail_email(user, email_attrs)
+  @doc """
+  Store parsed email data to the database.
+  Separate from fetching operations.
+  """
+  def store_emails(user, parsed_emails) do
+    results =
+      Enum.map(parsed_emails, fn email_attrs ->
+        case Rag.upsert_gmail_email(user, email_attrs) do
+          {:ok, email} ->
+            # Queue embedding generation as a background job (unless disabled in tests)
+            if should_queue_embeddings?() do
+              %{user_id: user.id, email_id: email.id}
+              |> Agentleguide.Jobs.EmbeddingJob.new()
+              |> Oban.insert()
+            end
+
+            {:ok, email}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+      end)
+
+    successes = Enum.filter(results, &match?({:ok, _}, &1))
+    errors = Enum.filter(results, &match?({:error, _}, &1))
+
+    if length(errors) > 0 do
+      {:error, {:partial_failure, %{successes: successes, errors: errors}}}
+    else
+      {:ok, %{successes: successes, errors: errors}}
+    end
+  end
+
+  @doc """
+  Legacy method for backwards compatibility.
+  Now orchestrates fetch, parse, and store operations.
+  """
+  def fetch_and_store_messages(user, message_ids) do
+    with {:ok, %{successes: message_data_list}} <- fetch_messages(user, message_ids) do
+      parsed_emails =
+        message_data_list
+        |> Enum.map(fn {:ok, message_data} -> parse_message(message_data) end)
+
+      case store_emails(user, parsed_emails) do
+        {:ok, %{successes: successes}} -> {:ok, successes}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  @doc """
+  Legacy method for backwards compatibility.
+  """
+  def fetch_and_store_message(user, message_id) do
+    case fetch_and_store_messages(user, [message_id]) do
+      {:ok, [result]} -> result
+      {:ok, []} -> {:error, :no_results}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   defp extract_email_body(payload) do
@@ -312,13 +398,13 @@ defmodule Agentleguide.Services.Google.GmailService do
 
     request =
       case method do
-        :get -> Finch.build(:get, url, headers)
-        :post -> Finch.build(:post, url, headers, Jason.encode!(body))
-        :put -> Finch.build(:put, url, headers, Jason.encode!(body))
-        :delete -> Finch.build(:delete, url, headers)
+        :get -> http_client().build(:get, url, headers, nil)
+        :post -> http_client().build(:post, url, headers, Jason.encode!(body))
+        :put -> http_client().build(:put, url, headers, Jason.encode!(body))
+        :delete -> http_client().build(:delete, url, headers, nil)
       end
 
-    case Finch.request(request, Agentleguide.Finch) do
+    case http_client().request(request, Agentleguide.Finch) do
       {:ok, %{status: status, body: response_body}} when status in 200..299 ->
         case Jason.decode(response_body) do
           {:ok, data} -> {:ok, data}
@@ -337,5 +423,14 @@ defmodule Agentleguide.Services.Google.GmailService do
         Logger.error("Gmail API request failed: #{inspect(error)}")
         {:error, {:request_failed, error}}
     end
+  end
+
+  defp http_client do
+    Application.get_env(:agentleguide, :gmail_http_client, Finch)
+  end
+
+  # Allow embedding job queueing to be configurable for testing
+  defp should_queue_embeddings? do
+    Application.get_env(:agentleguide, :queue_embeddings, true)
   end
 end

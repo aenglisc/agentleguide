@@ -8,6 +8,10 @@ defmodule Agentleguide.Services.Google.GoogleAuthService do
 
   @google_token_url "https://oauth2.googleapis.com/token"
 
+  defp http_client do
+    Application.get_env(:agentleguide, :google_auth_http_client, Finch)
+  end
+
   @doc """
   Refresh the Google access token using the refresh token.
   Google access tokens expire after 1 hour.
@@ -29,7 +33,7 @@ defmodule Agentleguide.Services.Google.GoogleAuthService do
       form_body = URI.encode_query(body)
       request = Finch.build(:post, @google_token_url, headers, form_body)
 
-      case Finch.request(request, Agentleguide.Finch) do
+      case http_client().request(request, Agentleguide.Finch) do
         {:ok, %{status: 200, body: response_body}} ->
           case Jason.decode(response_body) do
             {:ok, %{"access_token" => access_token, "expires_in" => expires_in} = token_data} ->
@@ -59,6 +63,7 @@ defmodule Agentleguide.Services.Google.GoogleAuthService do
                   Logger.error(
                     "Failed to update user with new Google token: #{inspect(changeset)}"
                   )
+
                   {:error, :update_failed}
               end
 
@@ -96,6 +101,7 @@ defmodule Agentleguide.Services.Google.GoogleAuthService do
       Logger.warning(
         "Cannot refresh Google token for user #{user.id}: no refresh token available"
       )
+
       {:error, :no_refresh_token}
     end
   end
@@ -129,6 +135,7 @@ defmodule Agentleguide.Services.Google.GoogleAuthService do
           Logger.warning(
             "Failed to auto-refresh Google token for user #{user.id}: #{inspect(reason)}"
           )
+
           {:error, reason}
       end
     else

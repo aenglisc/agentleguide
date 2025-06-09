@@ -38,7 +38,15 @@ defmodule AgentleguideWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive, :index
-    get "/profile-image/:user_id", PageController, :profile_image
+  end
+
+  # Webhook endpoints for external integrations
+  scope "/webhooks", AgentleguideWeb do
+    pipe_through :api
+
+    post "/gmail", WebhookController, :gmail_webhook
+    post "/calendar", WebhookController, :calendar_webhook
+    post "/hubspot", WebhookController, :hubspot_webhook
   end
 
   # Other scopes may use custom stacks.

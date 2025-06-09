@@ -6,4 +6,7 @@ defmodule Agentleguide.Services.Hubspot.HubspotServiceBehaviour do
 
   @callback refresh_access_token(user :: struct()) ::
               {:ok, struct()} | {:error, atom() | tuple()}
+
+  @callback create_contact(user :: struct(), attrs :: map()) ::
+              {:ok, struct()} | {:error, atom() | tuple()}
 end

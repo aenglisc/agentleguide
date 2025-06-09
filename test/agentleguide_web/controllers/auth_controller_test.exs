@@ -152,6 +152,174 @@ defmodule AgentleguideWeb.AuthControllerTest do
     end
   end
 
+  describe "request function" do
+    test "request redirects to home", %{conn: conn} do
+      conn = AgentleguideWeb.AuthController.request(conn, %{})
+      assert redirected_to(conn) == "/"
+    end
+  end
+
+  describe "callback edge cases" do
+    test "callback with provider parameter and google auth success", %{conn: conn} do
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> fetch_flash()
+        |> mock_google_auth_assign()
+
+      conn = AgentleguideWeb.AuthController.callback(conn, %{"provider" => "google"})
+
+      assert redirected_to(conn) == "/"
+      flash_info = Phoenix.Flash.get(conn.assigns.flash, :info)
+      assert flash_info =~ "Successfully connected with Google"
+    end
+
+    test "callback with provider parameter and auth failure", %{conn: conn} do
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> fetch_flash()
+        |> mock_google_auth_failure()
+
+      conn = AgentleguideWeb.AuthController.callback(conn, %{"provider" => "google"})
+
+      assert redirected_to(conn) == "/"
+      flash_error = Phoenix.Flash.get(conn.assigns.flash, :error)
+      assert flash_error =~ "Failed to authenticate with Google"
+    end
+
+    test "callback with malformed auth data", %{conn: conn} do
+      # Use auth data with missing required fields that should cause validation errors
+      invalid_auth = %Ueberauth.Auth{
+        uid: "123456789",
+        info: %Ueberauth.Auth.Info{
+          # Empty email should cause validation error
+          email: "",
+          name: "Test User"
+        },
+        credentials: %Ueberauth.Auth.Credentials{
+          token: "access_token_123",
+          refresh_token: "refresh_token_123"
+        }
+      }
+
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> fetch_flash()
+        |> assign(:ueberauth_auth, invalid_auth)
+
+      conn = AgentleguideWeb.AuthController.callback(conn, %{"provider" => "google"})
+
+      assert redirected_to(conn) == "/"
+      flash_error = Phoenix.Flash.get(conn.assigns.flash, :error)
+      assert flash_error =~ "There was an issue connecting your Google account"
+    end
+
+    test "generic callback failure without provider", %{conn: conn} do
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> fetch_flash()
+        |> mock_google_auth_failure()
+
+      conn = AgentleguideWeb.AuthController.callback(conn, %{})
+
+      assert redirected_to(conn) == "/"
+      flash_error = Phoenix.Flash.get(conn.assigns.flash, :error)
+      assert flash_error =~ "Authentication failed"
+    end
+  end
+
+  describe "disconnect" do
+    setup do
+      {:ok, user} =
+        Accounts.create_user_from_google(%Ueberauth.Auth{
+          uid: "123456789",
+          info: %Ueberauth.Auth.Info{
+            email: "test@example.com",
+            name: "Test User",
+            image: "https://example.com/avatar.jpg"
+          },
+          credentials: %Ueberauth.Auth.Credentials{
+            token: "access_token_123",
+            refresh_token: "refresh_token_123",
+            expires_at: 1_640_995_200
+          }
+        })
+
+      %{user: user}
+    end
+
+    test "disconnect hubspot with logged in user", %{conn: conn, user: user} do
+      # First connect HubSpot
+      {:ok, updated_user} =
+        Accounts.link_user_with_hubspot(user, %Ueberauth.Auth{
+          uid: "hubspot_123",
+          credentials: %Ueberauth.Auth.Credentials{
+            token: "hubspot_token",
+            refresh_token: "hubspot_refresh"
+          }
+        })
+
+      conn =
+        conn
+        |> init_test_session(%{user_id: updated_user.id})
+        |> fetch_flash()
+        |> assign(:current_user, updated_user)
+
+      conn = AgentleguideWeb.AuthController.disconnect(conn, %{"provider" => "hubspot"})
+
+      assert redirected_to(conn) == "/"
+      flash_info = Phoenix.Flash.get(conn.assigns.flash, :info)
+      assert flash_info =~ "Successfully disconnected from HubSpot"
+    end
+
+    test "disconnect hubspot without logged in user", %{conn: conn} do
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> fetch_flash()
+        |> assign(:current_user, nil)
+
+      conn = AgentleguideWeb.AuthController.disconnect(conn, %{"provider" => "hubspot"})
+
+      assert redirected_to(conn) == "/"
+      flash_error = Phoenix.Flash.get(conn.assigns.flash, :error)
+      assert flash_error =~ "You must be logged in to disconnect integrations"
+    end
+
+    test "disconnect hubspot without hubspot connection", %{conn: conn, user: user} do
+      # Try to disconnect a user who was never connected to HubSpot
+      conn =
+        conn
+        |> init_test_session(%{user_id: user.id})
+        |> fetch_flash()
+        |> assign(:current_user, user)
+
+      conn = AgentleguideWeb.AuthController.disconnect(conn, %{"provider" => "hubspot"})
+
+      assert redirected_to(conn) == "/"
+      # This should succeed gracefully even if no HubSpot connection exists
+      flash_info = Phoenix.Flash.get(conn.assigns.flash, :info)
+      assert flash_info =~ "Successfully disconnected from HubSpot"
+    end
+
+    test "disconnect unsupported provider", %{conn: conn, user: user} do
+      conn =
+        conn
+        |> init_test_session(%{user_id: user.id})
+        |> fetch_flash()
+        |> assign(:current_user, user)
+
+      conn = AgentleguideWeb.AuthController.disconnect(conn, %{"provider" => "facebook"})
+
+      assert redirected_to(conn) == "/"
+      flash_error = Phoenix.Flash.get(conn.assigns.flash, :error)
+      assert flash_error =~ "Disconnecting from Facebook is not supported yet"
+    end
+  end
+
   describe "authentication helper functions" do
     setup do
       {:ok, user} =

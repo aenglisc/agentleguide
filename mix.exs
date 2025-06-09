@@ -9,7 +9,15 @@ defmodule Agentleguide.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.cobertura": :test
+      ]
     ]
   end
 
@@ -68,7 +76,9 @@ defmodule Agentleguide.MixProject do
       # Background jobs
       {:oban, "~> 2.18"},
       # Testing utilities
-      {:mox, "~> 1.0", only: :test}
+      {:mox, "~> 1.0", only: :test},
+      # Test coverage
+      {:excoveralls, "~> 0.18", only: :test}
     ]
   end
 

@@ -11,7 +11,11 @@ config :agentleguide, Agentleguide.Repo,
   hostname: "localhost",
   database: "agentleguide_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2,
+  pool_size: 20,
+  ownership_timeout: 15_000,
+  timeout: 15_000,
+  queue_target: 1000,
+  queue_interval: 5000,
   types: Agentleguide.PostgrexTypes
 
 # We don't run a server during test. If one is required,
@@ -48,16 +52,20 @@ config :phoenix, :plug_init_mode, :runtime
 config :phoenix_live_view,
   enable_expensive_runtime_checks: true
 
-# AI Service Configuration for Test - Use Ollama (no real API calls in tests)
+# AI Service Configuration for Test - Use Mock Client (no real API calls in tests)
 config :agentleguide,
-  ai_backend: :ollama,
+  ai_backend: :mock,
   environment: :test,
   embeddings_enabled: false,
   # Disable HubSpot job scheduling and API calls in tests
-  hubspot_service: Agentleguide.HubspotServiceMock,
+  hubspot_service: Agentleguide.HubspotServiceTestStub,
   hubspot_token_refresh_scheduling: false,
   # Disable Google token refresh scheduling in tests
-  google_token_refresh_scheduling: false
+  google_token_refresh_scheduling: false,
+  gmail_http_client: Agentleguide.GmailHttpMock,
+  google_auth_http_client: Agentleguide.GoogleAuthHttpMock,
+  google_calendar_http_client: Agentleguide.GoogleCalendarHttpMock,
+  queue_embeddings: false
 
 # Disable Oban in test mode
 config :agentleguide, Oban, testing: :inline

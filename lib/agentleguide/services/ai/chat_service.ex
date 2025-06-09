@@ -14,7 +14,10 @@ defmodule Agentleguide.Services.Ai.ChatService do
   Creates a new session if one doesn't exist.
   """
   def process_query(user, session_id, query) do
-    with {:ok, _session} <- ensure_session_exists(user, session_id, query),
+    if is_nil(user) do
+      {:error, :invalid_user}
+    else
+      with {:ok, _session} <- ensure_session_exists(user, session_id, query),
          {:ok, _} <- save_user_message(user, session_id, query),
          {:ok, context} <- get_relevant_context(user, query),
          {:ok, response} <- generate_response(user, session_id, query, context),
@@ -26,6 +29,7 @@ defmodule Agentleguide.Services.Ai.ChatService do
         Logger.error("Failed to process query: #{inspect(reason)}")
         {:error, reason}
     end
+    end
   end
 
   @doc """
@@ -35,10 +39,10 @@ defmodule Agentleguide.Services.Ai.ChatService do
     session_id = generate_session_id()
 
     case Rag.create_chat_session(user, %{
-      session_id: session_id,
-      first_message: first_message,
-      last_message_at: DateTime.utc_now()
-    }) do
+           session_id: session_id,
+           first_message: first_message,
+           last_message_at: DateTime.utc_now()
+         }) do
       {:ok, session} -> {:ok, session}
       {:error, reason} -> {:error, reason}
     end
@@ -49,7 +53,9 @@ defmodule Agentleguide.Services.Ai.ChatService do
   """
   def get_session_with_messages(user, session_id) do
     case Rag.get_chat_session(user, session_id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       session ->
         messages = Rag.get_chat_messages(user, session_id)
         {:ok, %{session: session, messages: messages}}
@@ -111,6 +117,10 @@ defmodule Agentleguide.Services.Ai.ChatService do
       similar_docs = Rag.search_similar_documents(user, query_embedding, 5)
       {:ok, similar_docs}
     else
+      {:error, "Embeddings disabled"} ->
+        # Silently proceed without context when embeddings are disabled (e.g., in tests)
+        {:ok, []}
+
       {:error, reason} ->
         Logger.warning("Failed to get embeddings, proceeding without context: #{inspect(reason)}")
         {:ok, []}
@@ -204,6 +214,7 @@ defmodule Agentleguide.Services.Ai.ChatService do
           first_message: query,
           last_message_at: DateTime.utc_now()
         })
+
       session ->
         {:ok, session}
     end

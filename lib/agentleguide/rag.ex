@@ -6,7 +6,15 @@ defmodule Agentleguide.Rag do
 
   import Ecto.Query, warn: false
   alias Agentleguide.Repo
-  alias Agentleguide.Rag.{GmailEmail, HubspotContact, HubspotNote, DocumentEmbedding, ChatMessage, ChatSession}
+
+  alias Agentleguide.Rag.{
+    GmailEmail,
+    HubspotContact,
+    HubspotNote,
+    DocumentEmbedding,
+    ChatMessage,
+    ChatSession
+  }
 
   ## Gmail Email functions
 
@@ -78,24 +86,26 @@ defmodule Agentleguide.Rag do
       when is_binary(query) and byte_size(query) > 0 do
     query_pattern = "%#{String.downcase(query)}%"
 
-    results = GmailEmail
-    |> where([e], e.user_id == ^user_id)
-    |> where(
-      [e],
-      ilike(e.subject, ^query_pattern) or
-        ilike(e.body_text, ^query_pattern) or
-        ilike(e.from_name, ^query_pattern) or
-        ilike(e.from_email, ^query_pattern)
-    )
-    # Order by relevance: subject matches first, then recent emails
-    |> order_by([e], [
-      desc: fragment("CASE WHEN LOWER(?) LIKE ? THEN 1 ELSE 0 END", e.subject, ^query_pattern),
-      desc: e.date
-    ])
-    |> limit(^(limit * 2))  # Get more results to filter
-    |> Repo.all()
+    results =
+      GmailEmail
+      |> where([e], e.user_id == ^user_id)
+      |> where(
+        [e],
+        ilike(e.subject, ^query_pattern) or
+          ilike(e.body_text, ^query_pattern) or
+          ilike(e.from_name, ^query_pattern) or
+          ilike(e.from_email, ^query_pattern)
+      )
+      # Order by relevance: subject matches first, then recent emails
+      |> order_by([e],
+        desc: fragment("CASE WHEN LOWER(?) LIKE ? THEN 1 ELSE 0 END", e.subject, ^query_pattern),
+        desc: e.date
+      )
+      # Get more results to filter
+      |> limit(^(limit * 2))
+      |> Repo.all()
 
-        # Filter and rank results by relevance
+    # Filter and rank results by relevance
     results
     |> filter_relevant_emails(query)
     |> Enum.take(limit)
@@ -266,6 +276,16 @@ defmodule Agentleguide.Rag do
   end
 
   @doc """
+  Lists document embeddings for a user.
+  """
+  def list_document_embeddings_for_user(%{id: user_id}) do
+    DocumentEmbedding
+    |> where([de], de.user_id == ^user_id)
+    |> order_by([de], desc: de.inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
   Search for similar documents using vector similarity.
   """
   def search_similar_documents(user, query_embedding, limit \\ 10) do
@@ -350,7 +370,9 @@ defmodule Agentleguide.Rag do
   """
   def update_chat_session_activity(user, session_id) do
     case get_chat_session(user, session_id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       session ->
         session
         |> ChatSession.changeset(%{
@@ -366,7 +388,9 @@ defmodule Agentleguide.Rag do
   """
   def update_chat_session_title(user, session_id, title) do
     case get_chat_session(user, session_id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       session ->
         session
         |> ChatSession.changeset(%{title: title})
@@ -379,7 +403,9 @@ defmodule Agentleguide.Rag do
   """
   def archive_chat_session(user, session_id) do
     case get_chat_session(user, session_id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       session ->
         session
         |> ChatSession.changeset(%{is_active: false})
@@ -411,13 +437,16 @@ defmodule Agentleguide.Rag do
   end
 
   defp generate_session_title(nil), do: "New Chat"
+
   defp generate_session_title(first_message) when is_binary(first_message) do
     # Take first 50 characters of the message as title
     first_message
     |> String.trim()
     |> String.slice(0, 50)
     |> case do
-      "" -> "New Chat"
+      "" ->
+        "New Chat"
+
       title ->
         if String.length(title) == 50 do
           title <> "..."
@@ -426,6 +455,7 @@ defmodule Agentleguide.Rag do
         end
     end
   end
+
   defp generate_session_title(_), do: "New Chat"
 
   # Filter emails by relevance to query
@@ -437,12 +467,14 @@ defmodule Agentleguide.Rag do
       relevance_score = calculate_email_relevance(email, query_lower)
       {email, relevance_score}
     end)
-    |> Enum.filter(fn {_email, score} -> score > 0 end)  # Only keep relevant emails
-    |> Enum.sort_by(fn {_email, score} -> score end, :desc)  # Sort by relevance
+    # Only keep relevant emails
+    |> Enum.filter(fn {_email, score} -> score > 0 end)
+    # Sort by relevance
+    |> Enum.sort_by(fn {_email, score} -> score end, :desc)
     |> Enum.map(fn {email, _score} -> email end)
   end
 
-        # Calculate relevance score for an email
+  # Calculate relevance score for an email
   defp calculate_email_relevance(email, query_lower) do
     subject = String.downcase(email.subject || "")
     body = String.downcase(email.body_text || "")
@@ -451,30 +483,35 @@ defmodule Agentleguide.Rag do
     base_score = 0
 
     # Check if sender is clearly a digest/newsletter service
-    is_digest_sender = String.contains?(from_name, "digest") or
-                      String.contains?(from_name, "newsletter") or
-                      String.contains?(from_name, "shopify") or
-                      String.contains?(from_name, "quora") or
-                      String.contains?(from_name, "notifications")
+    is_digest_sender =
+      String.contains?(from_name, "digest") or
+        String.contains?(from_name, "newsletter") or
+        String.contains?(from_name, "shopify") or
+        String.contains?(from_name, "quora") or
+        String.contains?(from_name, "notifications")
 
     # High score for subject matches
     subject_score = if String.contains?(subject, query_lower), do: 10, else: 0
 
     # Medium score for body matches (but not in URLs or technical content)
-    is_spam_or_digest = email_body_looks_like_spam_or_digest(body, query_lower) or is_digest_sender
-    body_score = if String.contains?(body, query_lower) and not is_spam_or_digest do
-      5
-    else
-      0
-    end
+    is_spam_or_digest =
+      email_body_looks_like_spam_or_digest(body, query_lower) or is_digest_sender
+
+    body_score =
+      if String.contains?(body, query_lower) and not is_spam_or_digest do
+        5
+      else
+        0
+      end
 
     # Lower score for sender name matches (but not for digest senders)
-    sender_score = if String.contains?(from_name, query_lower) and not is_digest_sender, do: 2, else: 0
+    sender_score =
+      if String.contains?(from_name, query_lower) and not is_digest_sender, do: 2, else: 0
 
-        base_score + subject_score + body_score + sender_score
+    base_score + subject_score + body_score + sender_score
   end
 
-    # Check if email body looks like spam, digest, or automated content
+  # Check if email body looks like spam, digest, or automated content
   defp email_body_looks_like_spam_or_digest(body, query) do
     # Check for digest/newsletter patterns in body
     digest_patterns = [
@@ -492,14 +529,17 @@ defmodule Agentleguide.Rag do
 
     # Check for URL/encoded patterns where query appears
     query_context = extract_context_around_query(body, query)
-    appears_in_url = String.contains?(query_context, "%") or
-                    String.contains?(query_context, "http") or
-                    String.match?(query_context, ~r/[a-z0-9]{10,}/)  # Long random strings
+    # Long random strings
+    appears_in_url =
+      String.contains?(query_context, "%") or
+        String.contains?(query_context, "http") or
+        String.match?(query_context, ~r/[a-z0-9]{10,}/)
 
     # Check if it's from a digest/newsletter sender (more reliable than body content)
-    is_digest_sender = String.contains?(String.downcase(body), "digest") or
-                      String.contains?(String.downcase(body), "newsletter") or
-                      String.contains?(String.downcase(body), "unsubscribe")
+    is_digest_sender =
+      String.contains?(String.downcase(body), "digest") or
+        String.contains?(String.downcase(body), "newsletter") or
+        String.contains?(String.downcase(body), "unsubscribe")
 
     # Check for topic list patterns (multiple topics separated by punctuation)
     appears_in_topic_list = String.match?(query_context, ~r/[,;•\n].*#{query}.*[,;•\n]/)
@@ -508,15 +548,16 @@ defmodule Agentleguide.Rag do
     brief_mention = String.length(query_context) < 50
 
     # Check for any spam indicators
-    has_spam_patterns = Enum.any?(digest_patterns, fn pattern ->
-      String.contains?(body, pattern)
-    end)
+    has_spam_patterns =
+      Enum.any?(digest_patterns, fn pattern ->
+        String.contains?(body, pattern)
+      end)
 
     # Return true if it's clearly spam/digest content
     appears_in_url or
-    is_digest_sender or
-    (appears_in_topic_list and brief_mention) or
-    (has_spam_patterns and brief_mention)
+      is_digest_sender or
+      (appears_in_topic_list and brief_mention) or
+      (has_spam_patterns and brief_mention)
   end
 
   # Extract a small context around where the query appears
@@ -527,6 +568,7 @@ defmodule Agentleguide.Rag do
         before_context = String.slice(before, -25..-1) || ""
         after_context = String.slice(after_text, 0..25) || ""
         before_context <> query <> after_context
+
       _ ->
         ""
     end

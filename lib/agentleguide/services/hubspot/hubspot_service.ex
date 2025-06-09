@@ -199,10 +199,12 @@ defmodule Agentleguide.Services.Hubspot.HubspotService do
 
     case Agentleguide.Rag.upsert_hubspot_contact(user, contact_attrs) do
       {:ok, contact} ->
-        # Queue embedding generation as a background job
-        %{user_id: user.id, contact_id: contact.id}
-        |> Agentleguide.Jobs.EmbeddingJob.new()
-        |> Oban.insert()
+        # Queue embedding generation as a background job (unless disabled in tests)
+        if should_queue_embeddings?() do
+          %{user_id: user.id, contact_id: contact.id}
+          |> Agentleguide.Jobs.EmbeddingJob.new()
+          |> Oban.insert()
+        end
 
         {:ok, contact}
 
@@ -307,9 +309,9 @@ defmodule Agentleguide.Services.Hubspot.HubspotService do
 
       # HubSpot expects form-encoded data for token refresh
       form_body = URI.encode_query(body)
-      request = Finch.build(:post, url, headers, form_body)
+      request = finch_module().build(:post, url, headers, form_body)
 
-      case Finch.request(request, Agentleguide.Finch) do
+      case finch_module().request(request, Agentleguide.Finch) do
         {:ok, %{status: 200, body: response_body}} ->
           case Jason.decode(response_body) do
             {:ok, %{"access_token" => access_token, "expires_in" => expires_in} = token_data} ->
@@ -398,13 +400,13 @@ defmodule Agentleguide.Services.Hubspot.HubspotService do
 
     request =
       case method do
-        :get -> Finch.build(:get, url, headers)
-        :post -> Finch.build(:post, url, headers, Jason.encode!(body))
-        :put -> Finch.build(:put, url, headers, Jason.encode!(body))
-        :delete -> Finch.build(:delete, url, headers)
+        :get -> finch_module().build(:get, url, headers)
+        :post -> finch_module().build(:post, url, headers, Jason.encode!(body))
+        :put -> finch_module().build(:put, url, headers, Jason.encode!(body))
+        :delete -> finch_module().build(:delete, url, headers)
       end
 
-    case Finch.request(request, Agentleguide.Finch) do
+    case finch_module().request(request, Agentleguide.Finch) do
       {:ok, %{status: status, body: response_body}} when status in 200..299 ->
         case Jason.decode(response_body) do
           {:ok, data} -> {:ok, data}
@@ -452,5 +454,15 @@ defmodule Agentleguide.Services.Hubspot.HubspotService do
           {:ok, user}
         end
     end
+  end
+
+  # Allow Finch to be configurable for testing
+  defp finch_module do
+    Application.get_env(:agentleguide, :finch_module, Finch)
+  end
+
+  # Allow embedding job queueing to be configurable for testing
+  defp should_queue_embeddings? do
+    Application.get_env(:agentleguide, :queue_embeddings, true)
   end
 end

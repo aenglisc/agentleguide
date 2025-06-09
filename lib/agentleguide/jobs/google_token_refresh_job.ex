@@ -26,29 +26,21 @@ defmodule Agentleguide.Jobs.GoogleTokenRefreshJob do
         :ok
 
       user ->
-        if needs_refresh?(user) do
+        if needs_token_refresh?(user) do
           case google_auth_service().refresh_access_token(user) do
-            {:ok, _updated_user} ->
-              Logger.info(
-                "GoogleTokenRefreshJob: Successfully refreshed token for user #{user.id}"
-              )
+            {:ok, updated_user} ->
+              Logger.info("GoogleTokenRefreshJob: Successfully refreshed token for user #{user.id}")
 
-              # Schedule next refresh in 55 minutes (5 minutes before expiry)
-              if should_schedule?(), do: schedule_next_refresh(user_id)
+              # Schedule next refresh based on new token expiry
+              if should_schedule?(), do: schedule_next_refresh(updated_user.id)
               :ok
 
             {:error, reason} ->
-              Logger.error(
-                "GoogleTokenRefreshJob: Failed to refresh token for user #{user.id}: #{inspect(reason)}"
-              )
-
-              # Retry in 5 minutes on failure
-              if should_schedule?(), do: schedule_retry(user_id)
+              Logger.error("GoogleTokenRefreshJob: Failed to refresh token for user #{user.id}: #{inspect(reason)}")
               {:error, reason}
           end
         else
-          # Token doesn't need refresh yet, schedule for later
-          if should_schedule?(), do: schedule_next_refresh(user_id)
+          Logger.debug("GoogleTokenRefreshJob: Token for user #{user.id} does not need refreshing yet")
           :ok
         end
     end
@@ -94,7 +86,7 @@ defmodule Agentleguide.Jobs.GoogleTokenRefreshJob do
   end
 
   # Check if user's Google token needs refresh (expires in next 5 minutes)
-  defp needs_refresh?(user) do
+  defp needs_token_refresh?(user) do
     google_auth_service().needs_refresh?(user)
   end
 
@@ -109,9 +101,13 @@ defmodule Agentleguide.Jobs.GoogleTokenRefreshJob do
       expiry_time ->
         # Schedule refresh 5 minutes before expiry
         seconds_until_expiry = DateTime.diff(expiry_time, DateTime.utc_now())
-        refresh_time = max(seconds_until_expiry - 300, 60) # At least 1 minute from now
+        # At least 1 minute from now
+        refresh_time = max(seconds_until_expiry - 300, 60)
 
-        Logger.debug("GoogleTokenRefreshJob: Token for user #{user.id} expires in #{seconds_until_expiry}s, scheduling refresh in #{refresh_time}s")
+        Logger.debug(
+          "GoogleTokenRefreshJob: Token for user #{user.id} expires in #{seconds_until_expiry}s, scheduling refresh in #{refresh_time}s"
+        )
+
         refresh_time
     end
   end

@@ -1,8 +1,7 @@
 ExUnit.start()
 Ecto.Adapters.SQL.Sandbox.mode(Agentleguide.Repo, :manual)
 
-# Global test setup
-Mox.defmock(Agentleguide.HubspotServiceMock, for: Agentleguide.Services.Hubspot.HubspotServiceBehaviour)
-
-# Set up global stubs for HubSpot service to prevent real API calls
-Mox.stub_with(Agentleguide.HubspotServiceMock, Agentleguide.HubspotServiceTestStub)
+# Set up HTTP client mocks for Google services
+Mox.defmock(Agentleguide.GmailHttpMock, for: Agentleguide.HttpClientBehaviour)
+Mox.defmock(Agentleguide.GoogleAuthHttpMock, for: Agentleguide.HttpClientBehaviour)
+Mox.defmock(Agentleguide.GoogleCalendarHttpMock, for: Agentleguide.HttpClientBehaviour)
